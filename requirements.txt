@@ -1,8 +1,0 @@
-bazel:
-export PATH="$PATH:$HOME/bin"
-change python.BUILD to point to correct version of python
-export PYTHON_BIN_PATH="/usr/bin/python3.6"
-
-# TODO: use pybullet instead of mujoco
-mujoco:
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/kasparov/.mujoco/mujoco200/bin
