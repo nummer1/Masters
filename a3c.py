@@ -65,25 +65,104 @@
 #     # perform asyncronous update of actor_w using d_actor, critic_w using d_critic
 
 
+
 import tensorflow as tf
 import gym
+import random
+from threading import Thread
 
 
-class Actor_Critic_Model(tf.keras.Model):
-    def __init__(self, s_size, a_size):
+EPSILON = 0
+GAMMA = 0.995
+
+
+def get_sample(memory, n):
+        r = 0.0
+        for i in range(n):
+            r += memory[i][2] * (GAMMA ** i)
+        s, a, _, _  = memory[0]
+        _, _, _, s_ = memory[n-1]
+        return s, a, r, s_
+
+
+class Environment(Thread):
+    def __init__(self, threadID, name, counter):
+        Thread.__init__(self)
+        self.env = 0
+        self.agent = 0
+
+    def run(self):
+        while not self.stop_signal:
+            self.runEpisode()
+
+    def runEpisode(self):
+        s = self.env.reset()
+        while True:
+            time.sleep(THREAD_DELAY) # yield
+            a = self.agent.act(s)
+            sNext, r, done, info = self.env.step(a)
+            if done: # terminal state
+                sNext = None
+            self.agent.train(s, a, r, sNext)
+            s = sNext
+            if done or self.stop_signal:
+                break
+
+
+class Actor_Critic_Model():
+    def __init__(self):
         #Input and visual encoding layers
-        super(Actor_Critic_Model, self).__init__(name="AC")
-        self.inputs = 0
-        self.policy = 0
-        self.value = 0
+        # super(Actor_Critic_Model, self).__init__(name="AC")
+        # self.inputs = 0
+        # self.policy = 0
+        # self.value = 0
+        self.input = Input(batch_shape=(None, NUM_STATE))
+        self.dense = Dense(16, activation='relu')(input)
+        self.out_actions = Dense(NUM_ACTIONS, activation='softmax')(dense)
+        self.out_value   = Dense(1, activation='linear')(dense)
+        self.model = Model(inputs=[input], outputs=[out_actions, out_value])
+
+    def train_push(self, s, a, r, sNext):
+        with self.lock_queue:
+            self.train_queue[0].append(s)
+            self.train_queue[1].append(a)
+            self.train_queue[2].append(r)
+
+            if sNext is None:
+                self.train_queue[3].append(NONE_STATE)
+                self.train_queue[4].append(0.)
+            else:
+                self.train_queue[3].append(sNext)
+                self.train_queue[4].append(1.)
 
 
 class AC_Agent():
     def __init__(self):
         pass
 
-    def act(self, observation):
-        pass
+    def act(self, states):
+        if random.random() < epsilon:
+            return random.randint(0, NUM_ACTIONS-1)
+        else:
+            probability = brain.predict_probability(state)
+            return np.random.choice(NUM_ACTIONS, p=probability)
+
+    def train(self, s, a, r, sNext):
+        a_onehot = np.zeros(NUM_ACTIONS)
+        a_onehot[a] = 1
+        self.memory.append((s, a_onehot, r, sNext))
+
+        if len(self.memory) >= N_STEP_RETURN:
+            s, a, r, sNext_ = get_sample(self.memory, N_STEP_RETURN)
+            brain.train_push(s, a, r, sNext)
+            self.memory.pop(0)
+
+        if sNext is None:  # terminal state
+            while len(self.memory) > 0:
+                n = len(self.memory)
+                s, a, r, sNext = get_sample(self.memory, n)
+                brain.train_push(s, a, r, sNext)
+                self.memory.pop(0)
 
     def train(self, states, actions, rewards):
         # R = 0
