@@ -3,6 +3,7 @@ import ray.rllib.agents.impala as impala
 import numpy as np
 
 
+# can log metrics using these functions
 def on_episode_start(info):
     # print(info.keys())  # -> "env", 'episode"
     pass
@@ -21,12 +22,20 @@ def on_postprocess_traj(info):
 
 
 def get_config_impala():
+    # https://ray.readthedocs.io/en/latest/rllib-training.html#common-parameters
+    # https://ray.readthedocs.io/en/latest/rllib-algorithms.html#importance-weighted-actor-learner-architecture-impala
+
     config = impala.DEFAULT_CONFIG.copy()
     config["num_gpus"] = 0
     config["num_workers"] = 4
     config["eager"] = False
     config["eager_tracing"] = False  # setting to true greatly improves performance in eager mode
-    config["gamma"] = 0.99
+    config["gamma"] = 0.99  # discount for MDP
+
+    # config["sample_batch_size"] = 50
+    # config["train_batch_size"] = 500
+    # config["min_iter_time_s"] = 10
+    # config["learner_queue_timeout"] = 300
 
     # learning rate parameters IMPALA
     config["grad_clip"] = 40.0
@@ -40,15 +49,31 @@ def get_config_impala():
     # balancing the three losses
     config["vf_loss_coeff"] = 0.5
     config["entropy_coeff"] = 0.01
-    config["entropy_coeff_schedule"] = None
 
-    config["log_level"] = "WARN"
-    # config["callbacks"] = {
-    #         "on_episode_start": on_episode_start,
-    #         "on_episode_step": on_episode_step,
-    #         "on_episode_end": on_episode_end,
-    #         "on_train_result": on_train_result,
-    #         "on_postprocess_traj": on_postprocess_traj,
-    # }
+    # logging
+    config["log_level"] = "INFO"
+    config["callbacks"] = {
+            "on_episode_start": on_episode_start,
+            "on_episode_step": on_episode_step,
+            "on_episode_end": on_episode_end,
+            "on_train_result": on_train_result,
+            "on_postprocess_traj": on_postprocess_traj,
+    }
+
+    # model parameters
+    # https://github.com/ray-project/ray/blob/master/rllib/models/catalog.py
+    # https://ray.readthedocs.io/en/latest/rllib-models.html#built-in-model-parameters
+    # fc = fully connected
+    config["model"]["fcnet_activation"] = "tanh"
+    config["model"]["fcnet_hiddens"] = [16]
+
+    # lstm model parameters
+    config["model"]["max_seq_len"] = 20
+    config["model"]["use_lstm"] = True
+    config["model"]["lstm_cell_size"] = 16
+    # Whether to feed a_{t-1}, r_{t-1} to LSTM
+    config["model"]["lstm_use_prev_action_reward"] = False
+    # When using modelv1 models with a modelv2 algorithm, you may have to define the state shape here (e.g., [256, 256]).
+    config["model"]["state_shape"] = None
 
     return config

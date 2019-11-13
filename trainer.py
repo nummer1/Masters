@@ -8,7 +8,7 @@ import config
 
 ray.init()
 config = config.get_config_impala()
-trainer = impala.ImpalaAgent(config=config, env="CartPole-v0")
+trainer = impala.ImpalaAgent(config=config, env="GuessingGame-v0")
 
 # tune.run(
 #     "PPO",
@@ -22,7 +22,7 @@ trainer = impala.ImpalaAgent(config=config, env="CartPole-v0")
 #     },
 # )
 
-for i in range(10):
+for i in range(100):
    # Perform one iteration of training the policy with IMPALA
    result = trainer.train()
    print(pretty_print(result))
