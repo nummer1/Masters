@@ -1,5 +1,23 @@
 import ray
 import ray.rllib.agents.impala as impala
+import numpy as np
+
+
+def on_episode_start(info):
+    # print(info.keys())  # -> "env", 'episode"
+    pass
+
+def on_episode_step(info):
+    pass
+
+def on_episode_end(info):
+    pass
+
+def on_train_result(info):
+    pass
+
+def on_postprocess_traj(info):
+    pass
 
 
 def get_config_impala():
@@ -23,4 +41,14 @@ def get_config_impala():
     config["vf_loss_coeff"] = 0.5
     config["entropy_coeff"] = 0.01
     config["entropy_coeff_schedule"] = None
+
+    config["log_level"] = "WARN"
+    # config["callbacks"] = {
+    #         "on_episode_start": on_episode_start,
+    #         "on_episode_step": on_episode_step,
+    #         "on_episode_end": on_episode_end,
+    #         "on_train_result": on_train_result,
+    #         "on_postprocess_traj": on_postprocess_traj,
+    # }
+
     return config
