@@ -1,3 +1,7 @@
+# TODO: use custom preprocessing
+# TODO: use custom action distribution
+
+
 import ray
 # from ray import tune
 import ray.rllib.agents.impala as impala

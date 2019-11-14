@@ -29,6 +29,10 @@ class LSTMCustomModel(RecurrentTFModelV2):
                 initial_state=[state_in_h, state_in_c])
 
         # Postprocess LSTM output with another hidden layer and compute values
+        print("NUM_OUTPUTS:", num_outputs)
+        print("OBS_SPACE:", obs_space)
+        print("ACTION_SPACE:", action_space)
+
         logits = tf.keras.layers.Dense(
             self.num_outputs,
             activation=tf.keras.activations.linear,
