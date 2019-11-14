@@ -26,8 +26,15 @@ def get_config_impala():
     # https://ray.readthedocs.io/en/latest/rllib-algorithms.html#importance-weighted-actor-learner-architecture-impala
 
     config = impala.DEFAULT_CONFIG.copy()
+    # vtrace
+    config["vtrace"] = False
+    config["vtrace_clip_rho_threshold"] = 1.0
+    config["vtrace_clip_pg_rho_threshold"] = 1.0
+
     config["num_gpus"] = 0
     config["num_workers"] = 4
+    config["num_envs_per_worker"] = 20
+    # TODO: crashes when eager is off
     config["eager"] = False
     config["eager_tracing"] = False  # setting to true greatly improves performance in eager mode
     config["gamma"] = 0.99  # discount for MDP
@@ -60,20 +67,26 @@ def get_config_impala():
             "on_postprocess_traj": on_postprocess_traj,
     }
 
+    # custom model options
+    config["model"]["custom_preprocessor"] = None
+    config["model"]["custom_model"] = "lstm_model"
+    config["model"]["custom_action_dist"] = None
+    config["model"]["custom_options"] = {}
+
     # model parameters
     # https://github.com/ray-project/ray/blob/master/rllib/models/catalog.py
     # https://ray.readthedocs.io/en/latest/rllib-models.html#built-in-model-parameters
-    # fc = fully connected
-    config["model"]["fcnet_activation"] = "tanh"
-    config["model"]["fcnet_hiddens"] = [16]
-
-    # lstm model parameters
-    config["model"]["max_seq_len"] = 20
-    config["model"]["use_lstm"] = True
-    config["model"]["lstm_cell_size"] = 16
+    # # fc = fully connected
+    # config["model"]["fcnet_activation"] = "tanh"
+    # config["model"]["fcnet_hiddens"] = [16]
+    #
+    # # lstm model parameters
+    config["model"]["max_seq_len"] = 100
+    # config["model"]["use_lstm"] = True
+    # config["model"]["lstm_cell_size"] = 16
     # Whether to feed a_{t-1}, r_{t-1} to LSTM
-    config["model"]["lstm_use_prev_action_reward"] = False
-    # When using modelv1 models with a modelv2 algorithm, you may have to define the state shape here (e.g., [256, 256]).
-    config["model"]["state_shape"] = None
+    # config["model"]["lstm_use_prev_action_reward"] = True
+    # # When using modelv1 models with a modelv2 algorithm, you may have to define the state shape here (e.g., [256, 256]).
+    # config["model"]["state_shape"] = None
 
     return config

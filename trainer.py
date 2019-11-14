@@ -1,26 +1,17 @@
 import ray
+# from ray import tune
 import ray.rllib.agents.impala as impala
 from ray.tune.logger import pretty_print
-from ray import tune
+from ray.rllib.models import ModelCatalog
 
 import config
+import lstm_model
 
 
 ray.init()
+ModelCatalog.register_custom_model("lstm_model", lstm_model.LSTMCustomModel)
 config = config.get_config_impala()
 trainer = impala.ImpalaAgent(config=config, env="GuessingGame-v0")
-
-# tune.run(
-#     "PPO",
-#     stop={"episode_reward_mean": 150},
-#     config={
-#         "env": "CartPole-v0",
-#         "num_gpus": 0,
-#         "num_workers": 1,
-#         "lr": tune.grid_search([0.01, 0.001, 0.0001]),
-#         "eager": False,
-#     },
-# )
 
 for i in range(100):
    # Perform one iteration of training the policy with IMPALA
