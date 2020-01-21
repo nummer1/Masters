@@ -1,9 +1,4 @@
-# TODO: use custom preprocessing
-# TODO: use custom action distribution
-
-
 import ray
-# from ray import tune
 import ray.rllib.agents.impala as impala
 from ray.tune.logger import pretty_print
 from ray.rllib.models import ModelCatalog
@@ -14,8 +9,13 @@ import lstm_model
 
 ray.init()
 ModelCatalog.register_custom_model("lstm_model", lstm_model.LSTMCustomModel)
+# ModelCatalog.register_custom_model("lstm_model", lstm_model.TransformerCustomModel)
 config = config.get_config_impala()
 trainer = impala.ImpalaAgent(config=config, env="GuessingGame-v0")
+trainer = PPOTrainer(env="CartPole-v0", config={"train_batch_size": 4000})
+while True:
+    print(trainer.train())
+ApexTrainer
 
 for i in range(100):
    # Perform one iteration of training the policy with IMPALA
