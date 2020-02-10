@@ -32,8 +32,8 @@ def get_config_impala():
     config["vtrace_clip_pg_rho_threshold"] = 1.0
 
     config["num_gpus"] = 0
-    config["num_workers"] = 4
-    config["num_envs_per_worker"] = 20
+    config["num_workers"] = 1
+    config["num_envs_per_worker"] = 1
     # TODO: crashes when eager is off
     config["eager"] = False
     config["eager_tracing"] = False  # setting to true greatly improves performance in eager mode

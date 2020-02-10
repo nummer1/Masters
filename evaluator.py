@@ -1,14 +1,15 @@
-import gym
 import ray
 import ray.rllib.agents.impala as impala
 from ray.rllib.models import ModelCatalog
 import tensorflow as tf
 import numpy as np
+import gym
 
 import config
 import lstm_model
 
 
+# TODO: make modular and get trainers from trainer.py
 ray.init()
 ModelCatalog.register_custom_model("lstm_model", lstm_model.LSTMCustomModel)
 config = config.get_config_impala()
@@ -24,7 +25,6 @@ policy = trainer.get_policy()
 # print(policy.model.last_layer)
 
 env = gym.make('GuessingGame-v0')
-from copy import copy
 
 PRINT_SA = True
 for i in range(20):

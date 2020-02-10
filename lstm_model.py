@@ -55,8 +55,14 @@ class LSTMCustomModel(RecurrentTFModelV2):
         self.cell_size = cell_size
 
         # Define input layers
-        input_layer = tf.keras.layers.Input(
-            shape=(None, obs_space.shape[0]), name="inputs")
+        input_layer = tf.keras.layers.Conv2D(
+            hiddens_size, (4, 4), strides=(4, 4), padding='valid', data_format=None,
+            dilation_rate=(1, 1), activation=None, use_bias=True, kernel_initializer='glorot_uniform',
+            bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None,
+            activity_regularizer=None, kernel_constraint=None, bias_constraint=None)
+        print(input_layer)
+        # input_layer = tf.keras.layers.Input(
+            # shape=(None, obs_space.shape[0]), name="inputs") # TODO: obs_space is (64,64,3)
         state_in_h = tf.keras.layers.Input(shape=(cell_size, ), name="h")
         state_in_c = tf.keras.layers.Input(shape=(cell_size, ), name="c")
         seq_in = tf.keras.layers.Input(shape=( ), name="seq_in", dtype=tf.int32)
@@ -92,6 +98,7 @@ class LSTMCustomModel(RecurrentTFModelV2):
 
     @override(RecurrentTFModelV2)
     def forward_rnn(self, inputs, state, seq_lens):
+        # Call the model with the given input tensors and state.
         model_out, self._value_out, h, c = self.rnn_model([inputs, seq_lens] + state)
         return model_out, [h, c]
         # model_out, self._value_out = self.rnn_model([inputs, seq_lens] + state)
@@ -99,6 +106,7 @@ class LSTMCustomModel(RecurrentTFModelV2):
 
     @override(ModelV2)
     def get_initial_state(self):
+        # Get the initial recurrent state values for the model.
         return [
             np.zeros(self.cell_size, np.float32),
             np.zeros(self.cell_size, np.float32),
