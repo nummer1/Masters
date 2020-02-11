@@ -35,6 +35,10 @@ config_impala = config.get_config_impala()
 # trainer_PPO = PPOTrainer(config=config_ppo, env="GuessingGame-v0")
 # trainer_apex = ApexTrainer(config=config_apex, env="GuessingGame-v0")
 trainer = impala.ImpalaAgent(config=config_impala, env="procgen:procgen-coinrun-v0")
+policy = trainer.get_policy()
+policy.model.base_model.summary()
+
+# TODO: base policy is a dense network. This is not good
 
 
 # TODO: run one trainer, then run script multiple times for each job at Idun

@@ -1,5 +1,6 @@
 import ray
 import ray.rllib.agents.impala as impala
+from ray.rllib.agents import ppo
 import numpy as np
 
 
@@ -19,6 +20,12 @@ def on_train_result(info):
 
 def on_postprocess_traj(info):
     pass
+
+
+def get_config_ppo():
+    config = ppo.DEFAULT_CONFIG.copy()
+
+    return config
 
 
 def get_config_impala():
@@ -69,7 +76,7 @@ def get_config_impala():
 
     # custom model options
     config["model"]["custom_preprocessor"] = None
-    config["model"]["custom_model"] = "lstm_model"
+    config["model"]["custom_model"] = None # "lstm_model"
     config["model"]["custom_action_dist"] = None
     config["model"]["custom_options"] = {}
 
@@ -88,5 +95,7 @@ def get_config_impala():
     # config["model"]["lstm_use_prev_action_reward"] = True
     # # When using modelv1 models with a modelv2 algorithm, you may have to define the state shape here (e.g., [256, 256]).
     # config["model"]["state_shape"] = None
+    # TODO: model
+    # "model": {"dim": 42, "conv_filters": [[16, [4, 4], 2], [32, [4, 4], 2], [512, [11, 11], 1]]}
 
     return config

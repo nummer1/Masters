@@ -56,11 +56,10 @@ class LSTMCustomModel(RecurrentTFModelV2):
 
         # Define input layers
         input_layer = tf.keras.layers.Conv2D(
-            hiddens_size, (4, 4), strides=(4, 4), padding='valid', data_format=None,
-            dilation_rate=(1, 1), activation=None, use_bias=True, kernel_initializer='glorot_uniform',
-            bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None,
-            activity_regularizer=None, kernel_constraint=None, bias_constraint=None)
-        print(input_layer)
+            input_shape=(64, 64, 3), filters=hiddens_size, kernel_size=(4, 4), strides=(4, 4),
+            padding='valid', data_format=None, dilation_rate=(1, 1), activation=None, use_bias=True,
+            kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None,
+            bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None)
         # input_layer = tf.keras.layers.Input(
             # shape=(None, obs_space.shape[0]), name="inputs") # TODO: obs_space is (64,64,3)
         state_in_h = tf.keras.layers.Input(shape=(cell_size, ), name="h")
