@@ -54,36 +54,36 @@ class LSTMCustomModel(RecurrentTFModelV2):
         super(LSTMCustomModel, self).__init__(obs_space, action_space, num_outputs, model_config, name)
         self.cell_size = cell_size
 
-        # Define input layers
-        input_layer = tf.keras.layers.Conv2D(
-            input_shape=(64, 64, 3), filters=hiddens_size, kernel_size=(4, 4), strides=(4, 4),
-            padding='valid', data_format=None, dilation_rate=(1, 1), activation=None, use_bias=True,
-            kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None,
-            bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None)
-        # input_layer = tf.keras.layers.Input(
-            # shape=(None, obs_space.shape[0]), name="inputs") # TODO: obs_space is (64,64,3)
-        state_in_h = tf.keras.layers.Input(shape=(cell_size, ), name="h")
-        state_in_c = tf.keras.layers.Input(shape=(cell_size, ), name="c")
-        seq_in = tf.keras.layers.Input(shape=( ), name="seq_in", dtype=tf.int32)
-
-        # Preprocess observation with a hidden layer and send to LSTM cell
-        dense1 = tf.keras.layers.Dense(
-            hiddens_size, activation=tf.nn.relu, name="dense1")(input_layer)
-        lstm_out, state_h, state_c = tf.keras.layers.LSTM(
-            cell_size, return_sequences=True, return_state=True, name="lstm")(
-                inputs=dense1,
-                mask=tf.sequence_mask(seq_in),
-                initial_state=[state_in_h, state_in_c])
-
-        # Postprocess LSTM output with another hidden layer and compute values
+        # debug info
         print("NUM_OUTPUTS:", num_outputs)
         print("OBS_SPACE:", obs_space)
         print("ACTION_SPACE:", action_space)
 
+        input_layer = tf.keras.layers.Input(
+            shape=(64, 64, 3), name="inputs") # TODO: obs_space is (64,64,3)
+        state_in_h = tf.keras.layers.Input(shape=(self.cell_size, ), name="h")
+        state_in_c = tf.keras.layers.Input(shape=(self.cell_size, ), name="c")
+        seq_in = tf.keras.layers.Input(shape=( ), name="seq_in", dtype=tf.int32)
+
+        # Preprocess observation with a hidden layer and send to LSTM cell
+        # TODO: filters=hidden_size makes no sense
+        conv1 = tf.keras.layers.Conv2D(
+            filters=hiddens_size, kernel_size=(4, 4), strides=(4, 4), name="conv1",
+            padding='valid', data_format=None, dilation_rate=(1, 1), activation=None)(input_layer)
+        maxpool1 = tf.keras.layers.MaxPooling2D(
+            pool_size=(2, 2), name="maxpool1", strides=None, padding='valid', data_format=None)(conv1)
+        flatten =tf.keras.layers.Flatten(name="flatten")(maxpool1)
+        dense1 = tf.keras.layers.Dense(
+            hiddens_size, activation=tf.nn.relu, name="dense1")(flatten)
+        #TODO: below line causes exception
+        lstm_out, state_h, state_c = tf.keras.layers.LSTM(
+            self.cell_size, return_sequences=True, return_state=True, name="lstm")(
+                inputs=dense1, mask=tf.sequence_mask(seq_in),
+                initial_state=[state_in_h, state_in_c])
+
+        # Postprocess LSTM output with another hidden layer and compute values
         logits = tf.keras.layers.Dense(
-            self.num_outputs,
-            activation=tf.keras.activations.linear,
-            name="logits")(lstm_out)
+            self.num_outputs, activation=tf.keras.activations.linear, name="logits")(lstm_out)
         values = tf.keras.layers.Dense(
             1, activation=None, name="values")(lstm_out)
 
