@@ -2,6 +2,8 @@
 
 
 from ray.rllib.models.preprocessors import get_preprocessor
+from ray.rllib.models import ModelCatalog
+from ray.rllib.models.preprocessors import Preprocessor
 from ray.rllib.models.modelv2 import ModelV2
 from ray.rllib.models.tf.recurrent_tf_modelv2 import RecurrentTFModelV2
 from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
@@ -10,6 +12,10 @@ from ray.rllib.utils.annotations import override
 import torch.nn as nn
 import tensorflow as tf
 import numpy as np
+
+
+def _get_size(obs_space):
+    return get_preprocessor(obs_space)(obs_space).size
 
 
 class TransformerCustomModel(TorchModelV2, nn.Module):
@@ -60,30 +66,48 @@ class LSTMCustomModel(RecurrentTFModelV2):
         print("ACTION_SPACE:", action_space)
 
         input_layer = tf.keras.layers.Input(
-            shape=(64, 64, 3), name="inputs") # TODO: obs_space is (64,64,3)
-        state_in_h = tf.keras.layers.Input(shape=(self.cell_size, ), name="h")
-        state_in_c = tf.keras.layers.Input(shape=(self.cell_size, ), name="c")
-        seq_in = tf.keras.layers.Input(shape=( ), name="seq_in", dtype=tf.int32)
+            shape=(None, 64 * 64 * 3), name="inputs")
+
+        print("input:", input_layer.shape)
+
+        state_in_h = tf.keras.layers.Input(shape=(cell_size, ), name="h")
+        state_in_c = tf.keras.layers.Input(shape=(cell_size, ), name="c")
+        seq_in = tf.keras.layers.Input(shape=(), name="seq_in", dtype=tf.int32)
+
+        print("state_in_h:", state_in_h.shape)
+        print("state_in_c:", state_in_c.shape)
+        print("seq_in:", seq_in.shape)
+
+        reshape = tf.keras.layers.TimeDistributed(tf.keras.layers.Reshape((64, 64, 3)))(input_layer)
+
+        conv1 = tf.keras.layers.TimeDistributed(tf.keras.layers.Conv2D(
+            filters=16, kernel_size=(4, 4), strides=(1, 1), name="conv1",
+            padding='same', data_format=None, dilation_rate=(1, 1), activation=tf.nn.relu))(reshape)
+        maxpool1 = tf.keras.layers.TimeDistributed(tf.keras.layers.MaxPooling2D(
+            pool_size=(2, 2), name="maxpool1", strides=None, padding='valid', data_format=None))(conv1)
+
+        print("conv1:", conv1.shape)
+        print("maxpool1:", maxpool1.shape)
+
+        flatten = tf.keras.layers.TimeDistributed(tf.keras.layers.Flatten(name="flatten"))(maxpool1) # data_format="channels_last" (default)
+        print("flatten:", flatten.shape)
 
         # Preprocess observation with a hidden layer and send to LSTM cell
-        # TODO: filters=hidden_size makes no sense
-        conv1 = tf.keras.layers.Conv2D(
-            filters=hiddens_size, kernel_size=(4, 4), strides=(4, 4), name="conv1",
-            padding='valid', data_format=None, dilation_rate=(1, 1), activation=None)(input_layer)
-        maxpool1 = tf.keras.layers.MaxPooling2D(
-            pool_size=(2, 2), name="maxpool1", strides=None, padding='valid', data_format=None)(conv1)
-        flatten =tf.keras.layers.Flatten(name="flatten")(maxpool1)
-        dense1 = tf.keras.layers.Dense(
-            hiddens_size, activation=tf.nn.relu, name="dense1")(flatten)
-        #TODO: below line causes exception
+        # dense1 = tf.keras.layers.Dense(
+        #     16, activation=tf.nn.relu, name="dense1")(maxpool1)
+        # print("dense1:", dense1.shape)
+
         lstm_out, state_h, state_c = tf.keras.layers.LSTM(
-            self.cell_size, return_sequences=True, return_state=True, name="lstm")(
-                inputs=dense1, mask=tf.sequence_mask(seq_in),
+            cell_size, return_sequences=True, return_state=True, name="lstm")(
+                inputs=flatten,
+                mask=tf.sequence_mask(seq_in),
                 initial_state=[state_in_h, state_in_c])
+
+        print("lstm, state_h, state_c:", lstm_out.shape, state_h.shape, state_c.shape)
 
         # Postprocess LSTM output with another hidden layer and compute values
         logits = tf.keras.layers.Dense(
-            self.num_outputs, activation=tf.keras.activations.linear, name="logits")(lstm_out)
+            15, activation=tf.keras.activations.linear, name="logits")(lstm_out)
         values = tf.keras.layers.Dense(
             1, activation=None, name="values")(lstm_out)
 
@@ -92,12 +116,13 @@ class LSTMCustomModel(RecurrentTFModelV2):
             inputs=[input_layer, seq_in, state_in_h, state_in_c],
             outputs=[logits, values, state_h, state_c])
         self.register_variables(self.rnn_model.variables)
-        # self.register_variables(input_layer)
         self.rnn_model.summary()
 
     @override(RecurrentTFModelV2)
     def forward_rnn(self, inputs, state, seq_lens):
         # Call the model with the given input tensors and state.
+        print("inputs_0:", '\n', inputs, '\n', seq_lens, '\n', state)
+        print("input:", ([inputs, seq_lens] + state))
         model_out, self._value_out, h, c = self.rnn_model([inputs, seq_lens] + state)
         return model_out, [h, c]
         # model_out, self._value_out = self.rnn_model([inputs, seq_lens] + state)
@@ -116,8 +141,14 @@ class LSTMCustomModel(RecurrentTFModelV2):
         return tf.reshape(self._value_out, [-1])
 
 
-def _get_size(obs_space):
-    return get_preprocessor(obs_space)(obs_space).size
+class ProcgenPreprocessor(Preprocessor):
+    def _init_shape(self, obs_space, options):
+        print("preproc_obs_space:", obs_space.shape, options)
+        return obs_space.shape
+
+    def transform(self, observation):
+        # observation is shape [64, 64, 3]
+        return observation
 
 
 # if __name__ == "__main__":

@@ -6,7 +6,7 @@ from ray.tune.logger import pretty_print
 from ray.rllib.models import ModelCatalog
 
 import config
-import lstm_model
+import models_custom
 
 
 # SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -22,7 +22,9 @@ import lstm_model
 
 
 ray.init()
-ModelCatalog.register_custom_model("lstm_model", lstm_model.LSTMCustomModel)
+ModelCatalog.register_custom_model("lstm_model", models_custom.LSTMCustomModel)
+# TODO: set proprocessor in config
+ModelCatalog.register_custom_preprocessor("procgen_preproc", models_custom.ProcgenPreprocessor)
 # ModelCatalog.register_custom_model("lstm_model", lstm_model.TransformerCustomModel)
 
 config_impala = config.get_config_impala()
@@ -36,7 +38,7 @@ config_impala = config.get_config_impala()
 # trainer_apex = ApexTrainer(config=config_apex, env="GuessingGame-v0")
 trainer = impala.ImpalaAgent(config=config_impala, env="procgen:procgen-coinrun-v0")
 policy = trainer.get_policy()
-policy.model.base_model.summary()
+# policy.model.base_model.summary()
 
 # TODO: base policy is a dense network. This is not good
 

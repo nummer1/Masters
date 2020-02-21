@@ -75,7 +75,7 @@ def get_config_impala():
     }
 
     # custom model options
-    config["model"]["custom_preprocessor"] = None
+    config["model"]["custom_preprocessor"] = "procgen_preproc"
     config["model"]["custom_model"] = "lstm_model"
     config["model"]["custom_action_dist"] = None
     config["model"]["custom_options"] = {}
@@ -88,7 +88,7 @@ def get_config_impala():
     # config["model"]["fcnet_hiddens"] = [16]
     #
     # # lstm model parameters
-    # config["model"]["max_seq_len"] = 100
+    config["model"]["max_seq_len"] = 100
     # config["model"]["dim"] = 64
     # config["model"]["conv_filters"] = [[16, [4, 4], 2], [32, [4, 4], 2], [512, [11, 11], 1]]
     # config["model"]["use_lstm"] = True
