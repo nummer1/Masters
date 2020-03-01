@@ -1,24 +1,13 @@
 import gym
 import ray
+
 from ray.rllib.agents import impala
 from ray.rllib.agents import ppo
-from ray.tune.logger import pretty_print
 from ray.rllib.models import ModelCatalog
+from ray import tune
 
 import config
 import models_custom
-
-
-# SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-# version_path = os.path.join(SCRIPT_DIR, "version.txt")
-# __version__ = open(version_path).read()
-#
-# from .env import ProcgenEnv
-# from .gym_registration import register_environments
-#
-# register_environments()
-#
-# __all__ = ["ProcgenEnv"]
 
 
 ray.init()
@@ -36,9 +25,9 @@ config_impala = config.get_config_impala()
 # trainer_impala = impala.ImpalaAgent(config=config_impala, env="GuessingGame-v0")
 # trainer_PPO = PPOTrainer(config=config_ppo, env="GuessingGame-v0")
 # trainer_apex = ApexTrainer(config=config_apex, env="GuessingGame-v0")
-trainer = impala.ImpalaAgent(config=config_impala, env="procgen:procgen-coinrun-v0")
-policy = trainer.get_policy()
-# policy.model.base_model.summary()
+# trainer = impala.ImpalaAgent(config=config_impala, env="procgen:procgen-coinrun-v0")
+# policy = trainer.get_policy()
+# policy.model.rnn_model.summary()
 
 # TODO: base policy is a dense network. This is not good
 
@@ -47,11 +36,21 @@ policy = trainer.get_policy()
 # for x in [trainer_impala, trainer_PPO, trainer_apex]:
 # TODO: find good stopping point
 
-for i in range(100):
-   result = trainer.train()
-   print(pretty_print(result))
+analysis = tune.run(
+    "IMPALA",
+    name="test",
+    checkpoint_freq=10,
+    checkpoint_at_end=True,
+    max_failures=0,   # will restart x times from last ceckpoint after crash
+    stop={"training_iteration": 1},
+    config=config_impala
+)
 
-   # TODO: do data collection here or in config functions
-   if i % 1 == 0:
-       checkpoint = trainer.save()
-       print("checkpoint saved at", checkpoint)
+# for i in range(100):
+#    result = trainer.train()
+#    print(pretty_print(result))
+#
+#    # TODO: do data collection here or in config functions
+#    if i % 1 == 0:
+#        checkpoint = trainer.save()
+#        print("checkpoint saved at", checkpoint)

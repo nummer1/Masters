@@ -9,6 +9,8 @@ import config
 import lstm_model
 
 
+# TODO: use: rllib rollout --help
+
 # TODO: make modular and get trainers from trainer.py
 ray.init()
 ModelCatalog.register_custom_model("lstm_model", lstm_model.LSTMCustomModel)
