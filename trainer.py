@@ -12,7 +12,9 @@ import models_custom
 
 ray.init()
 ModelCatalog.register_custom_model("lstm_model", models_custom.LSTMCustomModel)
-# TODO: set proprocessor in config
+ModelCatalog.register_custom_model("transformer_model", models_custom.TransformerCustomModel)
+
+
 ModelCatalog.register_custom_preprocessor("procgen_preproc", models_custom.ProcgenPreprocessor)
 # ModelCatalog.register_custom_model("lstm_model", lstm_model.TransformerCustomModel)
 

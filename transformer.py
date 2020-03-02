@@ -211,12 +211,3 @@ class Transformer(tf.keras.Model):
 #         pe_input=input_vocab_size,
 #         pe_target=target_vocab_size,
 #         rate=dropout_rate)
-
-transformer = Transformer(1, 4, 2, 3,
-        30, 15,
-        pe_input=20,
-        pe_target=10,
-        rate=0.1)
-
-
-transformer()
