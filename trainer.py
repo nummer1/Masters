@@ -19,7 +19,7 @@ ModelCatalog.register_custom_preprocessor("procgen_preproc", models_custom.Procg
 # ModelCatalog.register_custom_model("lstm_model", lstm_model.TransformerCustomModel)
 
 config_impala = config.get_config_impala()
-# config_ppo = config.get_config_ppo()
+config_ppo = config.get_config_ppo()
 # config_apex = config.get_config_apex()
 
 # procgen_env = gym.make("procgen:procgen-coinrun-v0")

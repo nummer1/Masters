@@ -49,6 +49,9 @@ class TransformerCustomModel(RecurrentTFModelV2):
         # d_model & n_heads == 0
         flatten = convNetwork(input_layer)
 
+        # TODO: add embedding layer
+        # TODO: add positional encoding
+
         # self, d_model, num_heads, dff, rate=0.1
         # TODO: d_model = 16384 ?
         # trans = transformer.EncoderLayer(64*64*3, 2, 10, rate=0.1)(flatten, training=True, mask=tf.sequence_mask(seq_in))
