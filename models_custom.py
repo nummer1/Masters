@@ -18,12 +18,15 @@ import transformer
 def convNetwork(input_layer):
     reshape = tf.keras.layers.TimeDistributed(tf.keras.layers.Reshape((64, 64, 3)))(input_layer)
     conv1 = tf.keras.layers.TimeDistributed(tf.keras.layers.Conv2D(
-        filters=16, kernel_size=(4, 4), strides=(1, 1), name="conv1",
+        filters=64, kernel_size=(8, 8), strides=(4, 4), name="conv1",
         padding='same', data_format=None, dilation_rate=(1, 1), activation=tf.nn.relu))(reshape)
-    maxpool1 = tf.keras.layers.TimeDistributed(tf.keras.layers.MaxPooling2D(
-        pool_size=(2, 2), name="maxpool1", strides=None, padding='valid', data_format=None))(conv1)
+    # maxpool1 = tf.keras.layers.TimeDistributed(tf.keras.layers.MaxPooling2D(
+        # pool_size=(2, 2), name="maxpool1", strides=None, padding='valid', data_format=None))(conv1)
+    conv2 = tf.keras.layers.TimeDistributed(tf.keras.layers.Conv2D(
+        filters=64, kernel_size=(4, 4), strides=(2, 2), name="conv2",
+        padding='same', data_format=None, dilation_rate=(1, 1), activation=tf.nn.relu))(conv1)
 
-    flatten = tf.keras.layers.TimeDistributed(tf.keras.layers.Flatten(name="flatten"))(maxpool1) # data_format="channels_last" (default)
+    flatten = tf.keras.layers.TimeDistributed(tf.keras.layers.Flatten(name="flatten"))(conv2) # data_format="channels_last" (default)
     return flatten
 
 
@@ -38,7 +41,7 @@ class TransformerCustomModel(RecurrentTFModelV2):
     input shape is (batch, time_steps, input_size), which is same as LSTM
     """
 
-    def __init__(self, obs_space, action_space, num_outputs, model_config, name, hiddens_size=16, cell_size=8):
+    def __init__(self, obs_space, action_space, num_outputs, model_config, name, cell_size=8):
         super(TransformerCustomModel, self).__init__(obs_space, action_space, num_outputs, model_config, name)
         self.cell_size = cell_size
 
@@ -91,7 +94,7 @@ class TransformerCustomModel(RecurrentTFModelV2):
 
 
 class LSTMCustomModel(RecurrentTFModelV2):
-    def __init__(self, obs_space, action_space, num_outputs, model_config, name, hiddens_size=16, cell_size=8):
+    def __init__(self, obs_space, action_space, num_outputs, model_config, name, cell_size=256):
         super(LSTMCustomModel, self).__init__(obs_space, action_space, num_outputs, model_config, name)
         self.cell_size = cell_size
 
@@ -112,13 +115,12 @@ class LSTMCustomModel(RecurrentTFModelV2):
         # flatten = tf.keras.layers.TimeDistributed(tf.keras.layers.Flatten(name="flatten"))(maxpool1) # data_format="channels_last" (default)
 
         # Preprocess observation with a hidden layer and send to LSTM cell
-        # dense1 = tf.keras.layers.Dense(
-        #     16, activation=tf.nn.relu, name="dense1")(maxpool1)
-        # print("dense1:", dense1.shape)flatten = tf.keras.layers.TimeDistributed(tf.keras.layers.Flatten(name="flatten"))(maxpool1)
+        dense1 = tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(
+             256, activation=tf.nn.relu, name="dense1"))(flatten)
 
         lstm_out, state_h, state_c = tf.keras.layers.LSTM(
             cell_size, return_sequences=True, return_state=True, name="lstm")(
-                inputs=flatten,
+                inputs=dense1,
                 mask=tf.sequence_mask(seq_in),
                 initial_state=[state_in_h, state_in_c])
 

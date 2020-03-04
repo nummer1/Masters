@@ -1,6 +1,9 @@
 import ray
-import ray.rllib.agents.impala as impala
+from ray.rllib.agents import impala
 from ray.rllib.agents import ppo
+from ray.rllib.agents.dqn import dqn
+from ray.rllib.agents.dqn import apex
+
 import numpy as np
 
 
@@ -145,12 +148,204 @@ def set_common_config(config):
     # },
 
 
+def get_config_apex():
+    config = apex.APEX_DEFAULT_CONFIG.copy()
+    set_common_config(config)
+
+    config["optimizer"]["max_weight_sync_delay"] = 400
+    config["optimizer"]["num_replay_buffer_shards"] = 4
+    config["optimizer"]["debug"] = False
+
+    config["n_step"] = 3
+    config["num_gpus"] = 1
+    config["num_workers"] = 32
+    config["buffer_size"] = 2000000
+    config["learning_starts"] = 50000
+    config["train_batch_size"] = 512
+    config["sample_batch_size"] = 50
+    config["target_network_update_freq"] = 500000
+    config["timesteps_per_iteration"] = 25000
+    config["exploration_config"] = {"type": "PerWorkerEpsilonGreedy"}
+    config["worker_side_prioritization"] = True
+    config["min_iter_time_s"] = 30
+
+    return config
+
+
 def get_config_rainbow():
-    config = None
+    config = dqn.DEFAULT_CONFIG.copy()
     set_common_config(config)
 
     # config num_workers = 8
     # learning rate = 2.5 * 10^-4
+
+    # === Model ===
+    # Number of atoms for representing the distribution of return. When
+    # this is greater than 1, distributional Q-learning is used.
+    # the discrete supports are bounded by v_min and v_max
+    # rainbow: "num_atoms": [more than 1],
+    config["num_atoms"] = 51
+    # set v_min and v_max according to your expected range of returns
+    config["v_min"] = -10.0
+    config["v_max"] = 10.0
+    # Whether to use noisy network
+    # rainbow: noisy": True
+    config["noisy"] = True
+    # control the initial value of noisy nets
+    config["sigma0"] = 0.5
+    # Whether to use dueling dqn
+    config["dueling"] = True
+    # Whether to use double dqn
+    config["double_q"] = True
+    # Postprocess model outputs with these hidden layers to compute the
+    # state and action values. See also the model config in catalog.py.
+    config["hiddens"] = [256]
+    # N-step Q learning
+    # rainbow: "n_step": [between 1 and 10],
+    config["n_step"] = 3
+
+    # === Exploration Settings (Experimental) ===
+    config["exploration_config"] = {
+        # The Exploration class to use.
+        "type": "EpsilonGreedy",
+        # Config for the Exploration class' constructor:
+        "initial_epsilon": 1.0,
+        "final_epsilon": 0.02,
+        "epsilon_timesteps": 10000,  # Timesteps over which to anneal epsilon.
+
+        # For soft_q, use:
+        # "exploration_config" = {
+        #   "type": "SoftQ"
+        #   "temperature": [float, e.g. 1.0]
+        # }
+    }
+    # Switch to greedy actions in evaluation workers.
+    config["evaluation_config"] = {
+        "explore": False
+    }
+
+    # If True parameter space noise will be used for exploration
+    # See https://blog.openai.com/better-exploration-with-parameter-noise/
+    config["parameter_noise"] = False
+
+    # Minimum env steps to optimize for per train call. This value does
+    # not affect learning, only the length of iterations.
+    config["timesteps_per_iteration"] = 1000
+    # Update the target network every `target_network_update_freq` steps.
+    config["target_network_update_freq"] = 500
+    # === Replay buffer ===
+    # Size of the replay buffer. Note that if async_updates is set, then
+    # each worker will have a replay buffer of this size.
+    config["buffer_size"] = 50000
+    # If True prioritized replay buffer will be used.
+    config["prioritized_replay"] = True
+    # Alpha parameter for prioritized replay buffer.
+    config["prioritized_replay_alpha"] = 0.6
+    # Beta parameter for sampling from prioritized replay buffer.
+    config["prioritized_replay_beta"] = 0.4
+    # Final value of beta (by default, we use constant beta=0.4).
+    config["final_prioritized_replay_beta"] = 0.4
+    # Time steps over which the beta parameter is annealed.
+    config["prioritized_replay_beta_annealing_timesteps"] = 20000
+    # Epsilon to add to the TD errors when updating priorities.
+    config["prioritized_replay_eps"] = 1e-6
+    # Whether to LZ4 compress observations
+    config["compress_observations"] = True
+
+    # === Optimization ===
+    # Learning rate for adam optimizer
+    config["lr"] = 2.5e-4
+    # Learning rate schedule
+    config["lr_schedule"] = None
+    # Adam epsilon hyper parameter
+    config["adam_epsilon"] = 1e-8
+    # If not None, clip gradients during optimization at this value
+    config["grad_norm_clipping"] = 40
+    # How many steps of the model to sample before learning starts.
+    config["learning_starts"] = 1000
+    # Update the replay buffer with this many samples at once. Note that
+    # this setting applies per-worker if num_workers > 1.
+    config["sample_batch_size"] = 4
+    # Size of a batched sampled from replay buffer for training. Note that
+    # if async_updates is set, then each worker returns gradients for a
+    # batch of this size.
+    config["train_batch_size"] = 32
+
+    # === Parallelism ===
+    # Number of workers for collecting samples with. This only makes sense
+    # to increase if your environment is particularly slow to sample, or if
+    # you"re using the Async or Ape-X optimizers.
+    config["num_workers"] = 0
+    # Whether to compute priorities on workers.
+    config["worker_side_prioritization"] = False
+    # Prevent iterations from going lower than this time span
+    config["min_iter_time_s"] = 1
+
+    # DEPRECATED VALUES (set to -1 to indicate they have not been overwritten
+    # by user's config). If we don't set them here, we will get an error
+    # from the config-key checker.
+    # "schedule_max_timesteps": DEPRECATED_VALUE,
+    # "exploration_final_eps": DEPRECATED_VALUE,
+    # "exploration_fraction": DEPRECATED_VALUE,
+    # "beta_annealing_fraction": DEPRECATED_VALUE,
+    # "per_worker_exploration": DEPRECATED_VALUE,
+    # "softmax_temp": DEPRECATED_VALUE,
+    # "soft_q": DEPRECATED_VALUE,
+
+    return config
+
+
+def get_config_appo():
+    config = impala.DEFAULT_CONFIG.copy()
+    set_common_config(config)
+
+    # Whether to use V-trace weighted advantages. If false, PPO GAE advantages
+    # will be used instead.
+    config["vtrace"] = False
+
+    # == These two options only apply if vtrace: False ==
+    # Should use a critic as a baseline (otherwise don't use value baseline;
+    # required for using GAE).
+    config["use_critic"] = True
+    # If true, use the Generalized Advantage Estimator (GAE)
+    # with a value function, see https://arxiv.org/pdf/1506.02438.pdf.
+    config["use_gae"] = True
+    # GAE(lambda) parameter
+    config["lambda"] = 0.95
+
+    # == PPO surrogate loss options ==
+    config["clip_param"] = 0.2
+
+    # == PPO KL Loss options ==
+    config["use_kl_loss"] = False
+    config["kl_coeff"] = 1.0
+    config["kl_target"] = 0.01
+
+    # == IMPALA optimizer params (see documentation in impala.py) ==
+    config["sample_batch_size"] = 50
+    config["train_batch_size"] = 500
+    config["min_iter_time_s"] = 10
+    config["num_workers"] = 2
+    config["num_gpus"] = 0
+    config["num_data_loader_buffers"] = 1
+    config["minibatch_buffer_size"] = 1
+    config["num_sgd_iter"] = 1
+    config["replay_proportion"] = 0.0
+    config["replay_buffer_num_slots"] = 100
+    config["learner_queue_size"] = 16
+    config["learner_queue_timeout"] = 300
+    config["max_sample_requests_in_flight_per_worker"] = 2
+    config["broadcast_interval"] = 1
+    config["grad_clip"] = 40.0
+    config["opt_type"] = "adam"
+    config["lr"] = 5e-4
+    config["lr_schedule"] = None
+    config["decay"] = 0.99
+    config["momentum"] = 0.0
+    config["epsilon"] = 0.1
+    config["vf_loss_coeff"] = 0.5
+    config["entropy_coeff"] = 0.01
+    config["entropy_coeff_schedule"] = None
 
     return config
 
