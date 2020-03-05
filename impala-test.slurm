@@ -1,0 +1,31 @@
+#!/bin/sh
+#SBATCH --partition=EPICALL
+#SBATCH --account=ie-idi
+#SBATCH --time=30:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=8
+#SBATCH --mem=64000
+#SBATCH --gres=gpu:1
+#SBATCH --job-name="impala-test"
+#SBATCH --output=impala-test-srun.out
+#SBATCH --mail-user=johanag@ntnu.no
+#SBATCH --mail-type=ALL
+
+WORKDIR=${SLURM_SUBMIT_DIR}
+cd ${WORKDIR}
+
+module purge
+module load fosscuda/2018b
+
+module load GCCcore/.8.3.0
+module load Python/3.7.4
+
+module load GCC/8.3.0
+module load CUDA/10.1.243
+module load OpenMPI/3.1.4
+module load TensorFlow/2.1.0-Python-3.7.4
+
+mpirun hostname
+
+source venv/bin/activate
+python trainer.py impala

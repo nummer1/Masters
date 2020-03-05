@@ -1,13 +1,13 @@
 #!/bin/sh
-#SBATCH --partition=EPICALL
+#SBATCH --partition=WORKQ
 #SBATCH --account=ie-idi
-#SBATCH --time=00:00:10
+#SBATCH --time=00:20:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=2
-#SBATCH --mem=2000
-#SBATCH --gres=gpu:1
-#SBATCH --job-name="impala-test"
-#SBATCH --output=impala-test-srun.out
+#SBATCH --mem=8000
+#SBATCH --gres=gpu:0
+#SBATCH --job-name="install venv"
+#SBATCH --output=debug.out
 #SBATCH --mail-user=johanag@ntnu.no
 #SBATCH --mail-type=ALL
 
@@ -25,14 +25,17 @@ module load CUDA/10.1.243
 module load OpenMPI/3.1.4
 module load TensorFlow/2.1.0-Python-3.7.4
 
-# module load GCCcore/.8.2.0
-# module load Python/3.7.2
-#
-# module load GCC/8.2.0-2.31.1
-# module load CUDA/10.1.105
-# module load OpenMPI/3.1.3
-# module load TensorFlow/1.13.1-Python-3.7.2
-
 mpirun hostname
 
-python trainer.py impala
+# python -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install gym
+pip install pandas
+pip install requests
+pip install ray
+pip install ray[tune]
+pip install ray[rllib]
+pip install procgen
+
+pip freeze

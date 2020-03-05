@@ -11,7 +11,7 @@ import config
 import models_custom
 
 
-ray.init()
+ray.init(memory=int(54e9), object_store_memory=int(10e9)
 ModelCatalog.register_custom_model("lstm_model", models_custom.LSTMCustomModel)
 ModelCatalog.register_custom_model("transformer_model", models_custom.TransformerCustomModel)
 

@@ -110,7 +110,7 @@ def set_common_config(config):
     # Number of GPUs to allocate to the trainer process. Note that not all
     # algorithms can take advantage of trainer GPUs. This can be fractional
     # (e.g., 0.3 GPUs).
-    config["num_gpus"] = 0
+    config["num_gpus"] = 1
     # Training batch size, if applicable. Should be >= sample_batch_size.
     # Samples batches will be concatenated together to a batch of this size,
     # which is then passed to SGD.
