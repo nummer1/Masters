@@ -1,5 +1,5 @@
 #!/bin/sh
-#SBATCH --partition=WORKQ
+#SBATCH --partition=CPUQ
 #SBATCH --account=ie-idi
 #SBATCH --time=00:20:00
 #SBATCH --nodes=1

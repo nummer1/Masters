@@ -11,7 +11,13 @@ import config
 import models_custom
 
 
-ray.init(memory=int(54e9), object_store_memory=int(10e9)
+alg = sys.argv[1]
+# memory is total amount of memory available
+if alg == "test":
+    ray.init()
+else:
+    ray.init(memory=64*1024*1024*1024, object_store_memory=20*1024*1024*1024)
+        # driver_object_store_memory=1*1024*1024*1024)
 ModelCatalog.register_custom_model("lstm_model", models_custom.LSTMCustomModel)
 ModelCatalog.register_custom_model("transformer_model", models_custom.TransformerCustomModel)
 
@@ -22,15 +28,13 @@ config_ppo = config.get_config_ppo()
 config_appo = config.get_config_appo()
 config_apex = config.get_config_apex()
 config_rainbow = config.get_config_rainbow()
+config_test = config.get_simple_test_config()
 
 
-# TODO: base policy is a dense network. This is not good
-# TODO: run one trainer, then run script multiple times for each job at Idun
-# for x in [trainer_impala, trainer_PPO, trainer_apex]:
+# NOTE: base policy is a dense network
 # TODO: find good stopping point
 
 
-alg = sys.argv[1]
 checkpoint_freq = 10
 checkpoint_at_end = True
 max_failures = 0
@@ -44,6 +48,7 @@ if alg == 'impala':
         checkpoint_freq=checkpoint_freq,
         checkpoint_at_end=checkpoint_at_end,
         max_failures=0,   # will restart x times from last ceckpoint after crash
+        reuse_actors=True,
         stop=stop,
         config=config_impala
     )
@@ -54,6 +59,7 @@ elif alg == 'ppo':
         checkpoint_freq=checkpoint_freq,
         checkpoint_at_end=checkpoint_at_end,
         max_failures=0,   # will restart x times from last ceckpoint after crash
+        reuse_actors=True,
         stop=stop,
         config=config_ppo
     )
@@ -64,6 +70,7 @@ elif alg == 'appo':
         checkpoint_freq=checkpoint_freq,
         checkpoint_at_end=checkpoint_at_end,
         max_failures=0,   # will restart x times from last ceckpoint after crash
+        reuse_actors=True,
         stop=stop,
         config=config_appo
     )
@@ -74,6 +81,7 @@ elif alg == 'apex':
         checkpoint_freq=checkpoint_freq,
         checkpoint_at_end=checkpoint_at_end,
         max_failures=0,   # will restart x times from last ceckpoint after crash
+        reuse_actors=True,
         stop=stop,
         config=config_apex
     )
@@ -84,11 +92,22 @@ elif alg == 'rainbow':
         checkpoint_freq=checkpoint_freq,
         checkpoint_at_end=checkpoint_at_end,
         max_failures=0,   # will restart x times from last ceckpoint after crash
+        reuse_actors=True,
         stop=stop,
         config=config_rainbow
     )
 else:
-    print("error in input '", alg, "' is not recognized", sep='')
+    print("!!! no algorithm selected, running simple test")
+    analysis = tune.run(
+        "IMPALA",
+        name="delete",
+        checkpoint_freq=checkpoint_freq,
+        checkpoint_at_end=checkpoint_at_end,
+        max_failures=0,   # will restart x times from last ceckpoint after crash
+        reuse_actors=True,
+        stop={"training_iteration": 1},
+        config=config_test
+    )
 
 
 print(analysis.trials)

@@ -1,5 +1,5 @@
 #!/bin/sh
-#SBATCH --partition=EPICALL
+#SBATCH --partition=GPUQ
 #SBATCH --account=ie-idi
 #SBATCH --time=30:00:00
 #SBATCH --nodes=1

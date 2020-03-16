@@ -10,9 +10,10 @@ from ray.rllib.models.tf.tf_modelv2 import TFModelV2
 from ray.rllib.utils.annotations import override
 
 import tensorflow as tf
+# import keras
 import numpy as np
 
-import transformer
+# import transformer
 
 
 def convNetwork(input_layer):
@@ -30,6 +31,31 @@ def convNetwork(input_layer):
     return flatten
 
 
+def transformer(input_layer, d_model, n_heads):
+    # causal = True: adds mask to prevent flow from future to past
+    def head(input_layer):
+        q = tf.keras.layers.Dense(d_model)(input_layer)
+        k = tf.keras.layers.Dense(d_model)(input_layer)
+        v = tf.keras.layers.Dense(d_model)(input_layer)
+        attention = tf.keras.layers.Attention(use_scale=True, causal=True)([q, v, k])
+        return attention
+
+    heads = []
+    for i in range(n_heads):
+        heads.append(head(input_layer))
+
+    conc = tf.keras.layers.concatenate(heads, axis=-1)
+    lin = tf.keras.layers.Dense(4096)(conc)  # TODO: linear must always be same shape as input_layer
+    add = tf.keras.layers.add([input_layer, lin])
+    norm = tf.keras.layers.LayerNormalization(axis=-1, scale=False, trainable=True)(add)
+    pmlp = tf.keras.layers.Conv1D(1, kernel_size=1, strides=1,
+            padding='same', dilation_rate=1, activation=tf.nn.relu)(norm)
+    add1 = tf.keras.layers.add([norm, pmlp])
+    norm1 = tf.keras.layers.LayerNormalization(axis=-1, scale=False, trainable=True)(add1)
+
+    return norm1
+
+
 class TransformerCustomModel(RecurrentTFModelV2):
     """
     input is embedding from previous layer
@@ -41,34 +67,31 @@ class TransformerCustomModel(RecurrentTFModelV2):
     input shape is (batch, time_steps, input_size), which is same as LSTM
     """
 
-    def __init__(self, obs_space, action_space, num_outputs, model_config, name, cell_size=8):
+    def __init__(self, obs_space, action_space, num_outputs, model_config, name, cell_size=64, d_model=8, n_heads=8):
         super(TransformerCustomModel, self).__init__(obs_space, action_space, num_outputs, model_config, name)
         self.cell_size = cell_size
 
         input_layer = tf.keras.layers.Input(
             shape=(None, 64 * 64 * 3), name="inputs")
-        seq_in = tf.keras.layers.Input(shape=(), name="seq_in", dtype=tf.int32)
+        # seq_in = tf.keras.layers.Input(shape=(), name="seq_in", dtype=tf.int32)
 
         # d_model & n_heads == 0
         flatten = convNetwork(input_layer)
 
-        # TODO: add embedding layer
         # TODO: add positional encoding
-
-        # self, d_model, num_heads, dff, rate=0.1
-        # TODO: d_model = 16384 ?
-        # trans = transformer.EncoderLayer(64*64*3, 2, 10, rate=0.1)(flatten, training=True, mask=tf.sequence_mask(seq_in))
-        # works with d_model = 16384
-        trans = transformer.EncoderLayer(64, 2, 64, rate=0.1)(flatten, training=True, mask=None)
+        trans1 = transformer(flatten, d_model, n_heads)
+        trans2 = transformer(trans1, d_model, n_heads)
 
         logits = tf.keras.layers.Dense(
-            15, activation=tf.keras.activations.linear, name="logits")(trans)
+            15, activation=tf.keras.activations.linear, name="logits")(trans2)
         values = tf.keras.layers.Dense(
-            1, activation=None, name="values")(trans)
+            1, activation=None, name="values")(trans2)
+        print("logits", logits.shape)
+        print("values", values.shape)
 
         # Create the RNN model
         self.rnn_model = tf.keras.Model(
-            inputs=[input_layer, seq_in],
+            inputs=[input_layer],
             outputs=[logits, values])
         self.register_variables(self.rnn_model.variables)
         self.rnn_model.summary()
@@ -89,8 +112,7 @@ class TransformerCustomModel(RecurrentTFModelV2):
 
     @override(ModelV2)
     def value_function(self):
-        # return tf.reshape(self._value_out, [-1])
-        return self._value_out
+        return tf.reshape(self._value_out, [-1])
 
 
 class LSTMCustomModel(RecurrentTFModelV2):

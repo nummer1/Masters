@@ -471,3 +471,31 @@ def get_config_impala():
     config["entropy_coeff_schedule"] = None
 
     return config
+
+
+def get_simple_test_config():
+    # used to check for bugs
+    config = impala.DEFAULT_CONFIG.copy()
+    config["model"]["custom_model"] = "transformer_model"  # "lstm_model"
+    config["model"]["custom_action_dist"] = None
+    config["model"]["custom_options"] = {}
+    config["model"]["custom_preprocessor"] = "procgen_preproc"
+
+    config["env"] = "procgen:procgen-coinrun-v0"
+    config["env_config"] = {}
+
+    config["num_workers"] = 1
+    config["num_envs_per_worker"] = 1
+    config["num_gpus"] = 0
+
+    config["log_level"] = "INFO"
+    config["callbacks"] = {
+        "on_episode_start": on_episode_start,
+        "on_episode_step": on_episode_step,
+        "on_episode_end": on_episode_end,
+        "on_sample_end": on_sample_end,
+        "on_train_result": on_train_result,
+        "on_postprocess_traj": on_postprocess_traj,
+    }
+
+    return config
