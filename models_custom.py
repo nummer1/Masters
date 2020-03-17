@@ -10,6 +10,8 @@ from ray.rllib.models.tf.tf_modelv2 import TFModelV2
 from ray.rllib.utils.annotations import override
 
 import tensorflow as tf
+from tensorflow.keras.layers import  Activation, Add, Attention, Concatenate, Conv2D, Dense, \
+        Flatten, Input, Lambda, LayerNormalization, LSTM, Multiply, Reshape, TimeDistributed
 # import keras
 import numpy as np
 
@@ -17,74 +19,107 @@ import numpy as np
 
 
 def convNetwork(input_layer):
-    reshape = tf.keras.layers.TimeDistributed(tf.keras.layers.Reshape((64, 64, 3)))(input_layer)
-    conv1 = tf.keras.layers.TimeDistributed(tf.keras.layers.Conv2D(
+    reshape = TimeDistributed(Reshape((64, 64, 3)))(input_layer)
+    conv1 = TimeDistributed(Conv2D(
         filters=64, kernel_size=(8, 8), strides=(4, 4), name="conv1",
         padding='same', data_format=None, dilation_rate=(1, 1), activation=tf.nn.relu))(reshape)
-    # maxpool1 = tf.keras.layers.TimeDistributed(tf.keras.layers.MaxPooling2D(
+    # maxpool1 = TimeDistributed(MaxPooling2D(
         # pool_size=(2, 2), name="maxpool1", strides=None, padding='valid', data_format=None))(conv1)
-    conv2 = tf.keras.layers.TimeDistributed(tf.keras.layers.Conv2D(
+    conv2 = TimeDistributed(Conv2D(
         filters=64, kernel_size=(4, 4), strides=(2, 2), name="conv2",
         padding='same', data_format=None, dilation_rate=(1, 1), activation=tf.nn.relu))(conv1)
 
-    flatten = tf.keras.layers.TimeDistributed(tf.keras.layers.Flatten(name="flatten"))(conv2) # data_format="channels_last" (default)
+    flatten = TimeDistributed(Flatten(name="flatten"))(conv2) # data_format="channels_last" (default)
     return flatten
+
+
+def gate(x, y):
+    """
+    gating mechanism from GRU
+    """
+    x_shape = x.shape[-1]
+
+    wr = Dense(x_shape)(y)
+    ur = Dense(x_shape)(x)
+    print("wr", wr.shape)
+    print("ur", ur.shape)
+    r = Activation('sigmoid')(Add()([wr, ur]))
+    wz = Dense(x_shape)(y)
+    uz = Dense(x_shape)(x)
+    print("r", r.shape)
+    print("wz", wz.shape)
+    print("uz", uz.shape)
+    z = Activation('sigmoid')(Add()([wz, uz]))  # TODO: add bias to activation
+    wg = Dense(x_shape)(y)
+    ug = Dense(x_shape)(Multiply()([r, x]))
+    print("z", z.shape)
+    print("wg", wg.shape)
+    print("ug", ug.shape)
+    h = Activation('tanh')(Add()([wg, ug]))
+    print("h", h.shape)
+    g = Add()(
+            [Multiply()([Lambda(lambda var: 1. - var)(z), x]),
+            Multiply()([z, h])])
+    print("g", g.shape)
+
+    return g
 
 
 def transformer(input_layer, d_model, n_heads):
     # causal = True: adds mask to prevent flow from future to past
-    def head(input_layer):
-        q = tf.keras.layers.Dense(d_model)(input_layer)
-        k = tf.keras.layers.Dense(d_model)(input_layer)
-        v = tf.keras.layers.Dense(d_model)(input_layer)
-        attention = tf.keras.layers.Attention(use_scale=True, causal=True)([q, v, k])
+    def head(inp):
+        q = Dense(d_model)(inp)
+        k = Dense(d_model)(inp)
+        v = Dense(d_model)(inp)
+        attention = Attention(use_scale=True, causal=True)([q, v, k])
         return attention
+
+    norm1 = LayerNormalization(axis=-1, scale=False, trainable=True)(input_layer)
+    print("norm1", norm1.shape)
 
     heads = []
     for i in range(n_heads):
-        heads.append(head(input_layer))
+        heads.append(head(norm1))
 
-    conc = tf.keras.layers.concatenate(heads, axis=-1)
-    lin = tf.keras.layers.Dense(4096)(conc)  # TODO: linear must always be same shape as input_layer
-    add = tf.keras.layers.add([input_layer, lin])
-    norm = tf.keras.layers.LayerNormalization(axis=-1, scale=False, trainable=True)(add)
-    pmlp = tf.keras.layers.Conv1D(1, kernel_size=1, strides=1,
-            padding='same', dilation_rate=1, activation=tf.nn.relu)(norm)
-    add1 = tf.keras.layers.add([norm, pmlp])
-    norm1 = tf.keras.layers.LayerNormalization(axis=-1, scale=False, trainable=True)(add1)
+    conc = Concatenate(axis=-1)(heads)
+    print("conc", conc.shape)
+    gate1 = gate(input_layer, conc)
+    print("gate1", gate1.shape)
+    norm2 = LayerNormalization(axis=-1, scale=False, trainable=True)(gate1)
+    print("norm2", norm2.shape)
+    pmlp = Dense(input_layer.shape[-1])(norm2)
+    print("pmlp", pmlp.shape)
+    gate2 = gate(gate1, pmlp)
+    print("gate2", gate2.shape)
+    # TODO: setting bias greater than 0 can greatly improve learning speed (according to paper)
 
-    return norm1
+    return gate2
 
 
 class TransformerCustomModel(RecurrentTFModelV2):
     """
-    input is embedding from previous layer
-        dimension = T(time steps) x D(hidden dimensions)
-        D is some embedding of the time steps in an RL setting
-            (eg. image ran through convolutional network)
-
-
     input shape is (batch, time_steps, input_size), which is same as LSTM
     """
 
-    def __init__(self, obs_space, action_space, num_outputs, model_config, name, cell_size=64, d_model=8, n_heads=8):
+    def __init__(self, obs_space, action_space, num_outputs, model_config, name, cell_size=256, d_model=8, n_heads=8):
         super(TransformerCustomModel, self).__init__(obs_space, action_space, num_outputs, model_config, name)
         self.cell_size = cell_size
 
-        input_layer = tf.keras.layers.Input(
+        input_layer = Input(
             shape=(None, 64 * 64 * 3), name="inputs")
-        # seq_in = tf.keras.layers.Input(shape=(), name="seq_in", dtype=tf.int32)
+        # seq_in = Input(shape=(), name="seq_in", dtype=tf.int32)
 
         # d_model & n_heads == 0
         flatten = convNetwork(input_layer)
+        shorten = Dense(256, activation=tf.nn.relu, name="shorten")(flatten)
 
         # TODO: add positional encoding
-        trans1 = transformer(flatten, d_model, n_heads)
+        trans1 = transformer(shorten, d_model, n_heads)
         trans2 = transformer(trans1, d_model, n_heads)
 
-        logits = tf.keras.layers.Dense(
+        logits = Dense(
             15, activation=tf.keras.activations.linear, name="logits")(trans2)
-        values = tf.keras.layers.Dense(
+        values = Dense(
             1, activation=None, name="values")(trans2)
         print("logits", logits.shape)
         print("values", values.shape)
@@ -120,36 +155,36 @@ class LSTMCustomModel(RecurrentTFModelV2):
         super(LSTMCustomModel, self).__init__(obs_space, action_space, num_outputs, model_config, name)
         self.cell_size = cell_size
 
-        input_layer = tf.keras.layers.Input(
+        input_layer = Input(
             shape=(None, 64 * 64 * 3), name="inputs")
-        state_in_h = tf.keras.layers.Input(shape=(cell_size, ), name="h")
-        state_in_c = tf.keras.layers.Input(shape=(cell_size, ), name="c")
-        seq_in = tf.keras.layers.Input(shape=(), name="seq_in", dtype=tf.int32)
+        state_in_h = Input(shape=(cell_size, ), name="h")
+        state_in_c = Input(shape=(cell_size, ), name="c")
+        seq_in = Input(shape=(), name="seq_in", dtype=tf.int32)
 
         flatten = convNetwork(input_layer)
-        # reshape = tf.keras.layers.TimeDistributed(tf.keras.layers.Reshape((64, 64, 3)))(input_layer)
-        # conv1 = tf.keras.layers.TimeDistributed(tf.keras.layers.Conv2D(
+        # reshape = TimeDistributed(Reshape((64, 64, 3)))(input_layer)
+        # conv1 = TimeDistributed(Conv2D(
         #     filters=16, kernel_size=(4, 4), strides=(1, 1), name="conv1",
         #     padding='same', data_format=None, dilation_rate=(1, 1), activation=tf.nn.relu))(reshape)
-        # maxpool1 = tf.keras.layers.TimeDistributed(tf.keras.layers.MaxPooling2D(
+        # maxpool1 = TimeDistributed(MaxPooling2D(
         #     pool_size=(2, 2), name="maxpool1", strides=None, padding='valid', data_format=None))(conv1)
         #
-        # flatten = tf.keras.layers.TimeDistributed(tf.keras.layers.Flatten(name="flatten"))(maxpool1) # data_format="channels_last" (default)
+        # flatten = TimeDistributed(Flatten(name="flatten"))(maxpool1) # data_format="channels_last" (default)
 
         # Preprocess observation with a hidden layer and send to LSTM cell
-        dense1 = tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(
+        dense1 = TimeDistributed(Dense(
              256, activation=tf.nn.relu, name="dense1"))(flatten)
 
-        lstm_out, state_h, state_c = tf.keras.layers.LSTM(
+        lstm_out, state_h, state_c = LSTM(
             cell_size, return_sequences=True, return_state=True, name="lstm")(
                 inputs=dense1,
                 mask=tf.sequence_mask(seq_in),
                 initial_state=[state_in_h, state_in_c])
 
         # Postprocess LSTM output with another hidden layer and compute values
-        logits = tf.keras.layers.Dense(
+        logits = Dense(
             15, activation=tf.keras.activations.linear, name="logits")(lstm_out)
-        values = tf.keras.layers.Dense(
+        values = Dense(
             1, activation=None, name="values")(lstm_out)
 
         # Create the RNN model
