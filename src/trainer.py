@@ -7,6 +7,7 @@ from ray.rllib.agents import ppo
 from ray.rllib.models import ModelCatalog
 from ray import tune
 
+import environments
 import config
 import models_custom
 
@@ -20,7 +21,6 @@ else:
         # driver_object_store_memory=1*1024*1024*1024)
 ModelCatalog.register_custom_model("lstm_model", models_custom.LSTMCustomModel)
 ModelCatalog.register_custom_model("transformer_model", models_custom.TransformerCustomModel)
-
 ModelCatalog.register_custom_preprocessor("procgen_preproc", models_custom.ProcgenPreprocessor)
 
 config_impala = config.get_config_impala()
@@ -30,6 +30,17 @@ config_apex = config.get_config_apex()
 config_rainbow = config.get_config_rainbow()
 config_test = config.get_simple_test_config()
 
+# def __init__(
+#         self,
+#         num_envs,
+#         env_name,
+#         center_agent=True,
+#         options=None,
+#         use_generated_assets=False,
+#         paint_vel_info=False,
+#         distribution_mode="hard",
+#         **kwargs,
+#     ):
 
 # NOTE: base policy is a dense network
 # TODO: find good stopping point

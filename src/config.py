@@ -75,8 +75,8 @@ def set_common_config(config):
     config["model"]["custom_options"] = {}
     config["model"]["custom_preprocessor"] = "procgen_preproc"
 
-    config["env"] = "procgen:procgen-coinrun-v0"
-    config["env_config"] = {}  # TODO
+    config["env"] = "memory_single_task"
+    config["env_config"] = {"num_levels": 500, "use_generated_assets": False}
 
     # === Settings for Rollout Worker processes ===
     # Number of rollout worker actors to create for parallel sampling. Setting
@@ -146,6 +146,44 @@ def set_common_config(config):
     #     "type": "StochasticSampling",
     #     # Add constructor kwargs here (if any).
     # },
+
+     # === Evaluation Settings ===
+    # Evaluate with every `evaluation_interval` training iterations.
+    # The evaluation stats will be reported under the "evaluation" metric key.
+    # Note that evaluation is currently not parallelized, and that for Ape-X
+    # metrics are already only reported for the lowest epsilon workers.
+    config["evaluation_interval"] = 10
+    # Number of episodes to run per evaluation period. If using multiple
+    # evaluation workers, we will run at least this many episodes total.
+    config["evaluation_num_episodes"] = 100
+    # Internal flag that is set to True for evaluation workers.
+    config["in_evaluation"] = False
+    # Typical usage is to pass extra args to evaluation env creator
+    # and to disable exploration by computing deterministic actions.
+    # IMPORTANT NOTE: Policy gradient algorithms are able to find the optimal
+    # policy, even if this is a stochastic one. Setting "explore=False" here
+    # will result in the evaluation workers not using this optimal policy!
+    config["evaluation_config"] = {
+        # TODO
+        # Example: overriding env_config, exploration, etc:
+        # "env_config": {...},
+        # "explore": False
+    }
+    # Number of parallel workers to use for evaluation. Note that this is set
+    # to zero by default, which means evaluation will be run in the trainer
+    # process. If you increase this, it will increase the Ray resource usage
+    # of the trainer since evaluation workers are created separately from
+    # rollout workers.
+    config["evaluation_num_workers"] = 0
+    # Customize the evaluation method. This must be a function of signature
+    # (trainer: Trainer, eval_workers: WorkerSet) -> metrics: dict. See the
+    # Trainer._evaluate() method to see the default implementation. The
+    # trainer guarantees all eval workers have the latest policy state before
+    # this function is called.
+    config["custom_eval_function"] = None
+    # EXPERIMENTAL: use the execution plan based API impl of the algo. Can also
+    # be enabled by setting RLLIB_EXEC_API=1.
+    config["use_exec_api"] = False
 
 
 def get_config_apex():
@@ -481,11 +519,11 @@ def get_simple_test_config():
     config["model"]["custom_options"] = {}
     config["model"]["custom_preprocessor"] = "procgen_preproc"
 
-    config["env"] = "procgen:procgen-coinrun-v0"
-    config["env_config"] = {}
+    config["env"] = "memory_multi_task"
+    config["env_config"] = {"num_levels": 500, "use_generated_assets": False}
 
     config["num_workers"] = 1
-    config["num_envs_per_worker"] = 1
+    config["num_envs_per_worker"] = 6
     config["num_gpus"] = 0
 
     config["log_level"] = "INFO"
@@ -497,5 +535,16 @@ def get_simple_test_config():
         "on_train_result": on_train_result,
         "on_postprocess_traj": on_postprocess_traj,
     }
+
+    # TODO: must use truncate_episodes with v-trace error when evaluation is enabled
+    config["evaluation_interval"] = 1
+    config["evaluation_num_episodes"] = 10
+    config["evaluation_config"] = {
+        # Example: overriding env_config, exploration, etc:
+        # "env_config": {...},
+        # "explore": False
+    }
+    # config["evaluation_num_workers"] = 0
+    # config["custom_eval_function"] = None
 
     return config

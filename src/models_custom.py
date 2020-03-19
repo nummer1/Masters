@@ -9,13 +9,55 @@ from ray.rllib.models.tf.recurrent_tf_modelv2 import RecurrentTFModelV2
 from ray.rllib.models.tf.tf_modelv2 import TFModelV2
 from ray.rllib.utils.annotations import override
 
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import  Activation, Add, Attention, Concatenate, Conv2D, Dense, \
-        Flatten, Input, Lambda, LayerNormalization, LSTM, Multiply, Reshape, TimeDistributed
-# import keras
-import numpy as np
+        Flatten, Input, Lambda, Layer, LayerNormalization, LSTM, Multiply, Reshape, TimeDistributed
+from tensorflow.keras import backend as K
 
 # import transformer
+
+
+class AdvancedAdd(Layer):
+    def __init__(self, activation=None, use_bias=False,
+            bias_initializer='zeros', bias_regularizer=None, bias_constraint=None, **kwargs):
+        self.activation = tf.keras.activations.get(activation)
+        self.use_bias = use_bias
+        self.bias_initializer = tf.keras.initializers.get(bias_initializer)
+        self.bias_regularizer = tf.keras.regularizers.get(bias_regularizer)
+        self.bias_constraint = tf.keras.constraints.get(bias_constraint)
+        super(AdvancedAdd, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        assert isinstance(input_shape, list)
+        assert len(input_shape) == 2
+        assert input_shape[0][-1] == input_shape[1][-1]
+
+        # Create a trainable weight variable for this layer.
+        if self.use_bias:
+            self.bias = self.add_weight(name='bias',
+                    trainable=True, shape=(input_shape[0][-1],), initializer=self.bias_initializer,
+                    regularizer=self.bias_regularizer, constraint=self.bias_constraint)
+        else:
+            self.bias = None
+        super(AdvancedAdd, self).build(input_shape)  # Be sure to call this at the end
+
+    def call(self, inputs):
+        assert isinstance(inputs, list)
+        assert len(inputs) == 2
+
+        output = inputs[0] + inputs[1]
+        if self.use_bias:
+            output = K.bias_add(output, self.bias, data_format='channels_last')
+        if self.activation is not None:
+            output = self.activation(output)
+        return output
+
+    def compute_output_shape(self, input_shape):
+        assert isinstance(input_shape, list)
+        assert len(input_shape) == 2
+        assert input_shape[0][-1] == input_shape[1][-1]
+        return input_shape[0]
 
 
 def convNetwork(input_layer):
@@ -35,62 +77,45 @@ def convNetwork(input_layer):
 
 def gate(x, y):
     """
-    gating mechanism from GRU
+    gating mechanism from "Stabilizing transformers for RL" paper
     """
     x_shape = x.shape[-1]
 
     wr = Dense(x_shape)(y)
     ur = Dense(x_shape)(x)
-    print("wr", wr.shape)
-    print("ur", ur.shape)
-    r = Activation('sigmoid')(Add()([wr, ur]))
+    r = AdvancedAdd(activation='sigmoid', use_bias=False)([wr, ur])
     wz = Dense(x_shape)(y)
     uz = Dense(x_shape)(x)
-    print("r", r.shape)
-    print("wz", wz.shape)
-    print("uz", uz.shape)
-    z = Activation('sigmoid')(Add()([wz, uz]))  # TODO: add bias to activation
+    z = AdvancedAdd(activation='sigmoid', use_bias=True)([wz, uz])
     wg = Dense(x_shape)(y)
     ug = Dense(x_shape)(Multiply()([r, x]))
-    print("z", z.shape)
-    print("wg", wg.shape)
-    print("ug", ug.shape)
-    h = Activation('tanh')(Add()([wg, ug]))
-    print("h", h.shape)
+    h = AdvancedAdd(activation='tanh', use_bias=False)([wg, ug])
     g = Add()(
             [Multiply()([Lambda(lambda var: 1. - var)(z), x]),
             Multiply()([z, h])])
-    print("g", g.shape)
-
     return g
 
 
 def transformer(input_layer, d_model, n_heads):
-    # causal = True: adds mask to prevent flow from future to past
     def head(inp):
         q = Dense(d_model)(inp)
         k = Dense(d_model)(inp)
         v = Dense(d_model)(inp)
+        # causal = True: adds mask to prevent flow from future to past
         attention = Attention(use_scale=True, causal=True)([q, v, k])
         return attention
 
     norm1 = LayerNormalization(axis=-1, scale=False, trainable=True)(input_layer)
-    print("norm1", norm1.shape)
 
     heads = []
     for i in range(n_heads):
         heads.append(head(norm1))
 
     conc = Concatenate(axis=-1)(heads)
-    print("conc", conc.shape)
     gate1 = gate(input_layer, conc)
-    print("gate1", gate1.shape)
     norm2 = LayerNormalization(axis=-1, scale=False, trainable=True)(gate1)
-    print("norm2", norm2.shape)
     pmlp = Dense(input_layer.shape[-1])(norm2)
-    print("pmlp", pmlp.shape)
     gate2 = gate(gate1, pmlp)
-    print("gate2", gate2.shape)
     # TODO: setting bias greater than 0 can greatly improve learning speed (according to paper)
 
     return gate2
@@ -121,8 +146,6 @@ class TransformerCustomModel(RecurrentTFModelV2):
             15, activation=tf.keras.activations.linear, name="logits")(trans2)
         values = Dense(
             1, activation=None, name="values")(trans2)
-        print("logits", logits.shape)
-        print("values", values.shape)
 
         # Create the RNN model
         self.rnn_model = tf.keras.Model(
@@ -162,14 +185,6 @@ class LSTMCustomModel(RecurrentTFModelV2):
         seq_in = Input(shape=(), name="seq_in", dtype=tf.int32)
 
         flatten = convNetwork(input_layer)
-        # reshape = TimeDistributed(Reshape((64, 64, 3)))(input_layer)
-        # conv1 = TimeDistributed(Conv2D(
-        #     filters=16, kernel_size=(4, 4), strides=(1, 1), name="conv1",
-        #     padding='same', data_format=None, dilation_rate=(1, 1), activation=tf.nn.relu))(reshape)
-        # maxpool1 = TimeDistributed(MaxPooling2D(
-        #     pool_size=(2, 2), name="maxpool1", strides=None, padding='valid', data_format=None))(conv1)
-        #
-        # flatten = TimeDistributed(Flatten(name="flatten"))(maxpool1) # data_format="channels_last" (default)
 
         # Preprocess observation with a hidden layer and send to LSTM cell
         dense1 = TimeDistributed(Dense(
@@ -196,16 +211,12 @@ class LSTMCustomModel(RecurrentTFModelV2):
 
     @override(RecurrentTFModelV2)
     def forward_rnn(self, inputs, state, seq_lens):
-        # Call the model with the given input tensors and state.
-        # model_out, self._value_out, h, c = self.rnn_model(input_dict["obs"])
         model_out, self._value_out, h, c = self.rnn_model([inputs, seq_lens] + state)
         return model_out, [h, c]
-        # model_out, self._value_out = self.rnn_model([inputs, seq_lens] + state)
-        # return model_out
 
     @override(ModelV2)
     def get_initial_state(self):
-        # Get the initial recurrent state values for the model.
+        # Get the initial recurrent state values for the model
         return [
             np.zeros(self.cell_size, np.float32),
             np.zeros(self.cell_size, np.float32),

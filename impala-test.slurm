@@ -28,4 +28,4 @@ module load TensorFlow/2.1.0-Python-3.7.4
 mpirun hostname
 
 source venv/bin/activate
-python trainer.py impala
+python src/trainer.py impala
