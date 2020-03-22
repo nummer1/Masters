@@ -19,6 +19,7 @@ if alg == "test":
 else:
     ray.init(memory=64*1024*1024*1024, object_store_memory=20*1024*1024*1024)
         # driver_object_store_memory=1*1024*1024*1024)
+
 ModelCatalog.register_custom_model("lstm_model", models_custom.LSTMCustomModel)
 ModelCatalog.register_custom_model("transformer_model", models_custom.TransformerCustomModel)
 ModelCatalog.register_custom_preprocessor("procgen_preproc", models_custom.ProcgenPreprocessor)

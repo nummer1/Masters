@@ -69,6 +69,56 @@ def on_postprocess_traj(info):
 # }
 
 
+def set_lstm(config):
+    pass
+
+
+def set_transformer(config):
+    pass
+
+
+def get_env_config(is_eval, env_num, num_levels, use_generated_assets):
+    env_config = {
+        "is_eval": is_eval,
+        "env_num": env_num,
+        "num_levels": num_levels,
+        "use_generated_assets": use_generated_assets
+    }
+    return env_config
+
+
+def set_env(config, is_single, is_eval, env_num, num_levels, use_generated_assets):
+    config["env"] = "memory_single_task" if is_single else "memory_multi_task"
+    config["env_config"] = get_env_config(False, env_num, num_levels, use_generated_assets)
+
+
+def set_eval(config):
+    names = ["CoinRun", "StarPilot", "CaveFlyer", "Dodgeball", "FruitBot", "Chaser", "Miner",
+    "Jumper", "Leaper", "Maze", "BigFish", "Heist", "Climber", "Plunder", "Ninja", "Bossfight"]
+    hard = [(5., 10.), (1.5, 35.), (2., 13.4), (1.5, 19.), (-.5, 27.2), (.5, 14.2), (1.5, 20.),
+    (1., 10.), (1.5, 10.), (4., 10.), (0., 40.), (2., 10.), (1., 12.6), (3., 30.), (2., 10.), (.5, 13.)]
+    # easy = CoinRun 5 10 StarPilot 2.5 64 CaveFlyer 3.5 12 Dodgeball 1.5 19 FruitBot -1.5 32.4
+    # Chaser .5 13 Miner 1.5 13 Jumper 3 10 Leaper 3 10 Maze 51 10 BigFish 1 40
+    # Heist 3.5 10 Climber 2 12.6 Plunder 4.5 30 Ninja 3.5 10 BossFight .5 13
+
+    config["evaluation_interval"] = 10
+    config["evaluation_num_episodes"] = 10
+    env_config = get_env_config(True, env_num, num_levels, use_generated_assets)
+    config["evaluation_config"] = {
+        # set is_eval to true and keep everything else the same
+        "env_config": env_config,
+        "vtrace": False
+    }
+    # config["evaluation_num_workers"] = 0
+    # Customize the evaluation method. This must be a function of signature
+    # (trainer: Trainer, eval_workers: WorkerSet) -> metrics: dict. See the
+    # Trainer._evaluate() method to see the default implementation. The
+    # trainer guarantees all eval workers have the latest policy state before
+    # this function is called.
+    # Rnorm = (R − Rmin)/(Rmax − Rmin),
+    config["custom_eval_function"] = None
+
+
 def set_common_config(config):
     config["model"]["custom_model"] = "lstm_model"
     config["model"]["custom_action_dist"] = None
@@ -76,7 +126,12 @@ def set_common_config(config):
     config["model"]["custom_preprocessor"] = "procgen_preproc"
 
     config["env"] = "memory_single_task"
-    config["env_config"] = {"num_levels": 500, "use_generated_assets": False}
+    config["env_config"] = {
+        "is_eval": False,
+        "env_num": 0,
+        "num_levels": 500,
+        "use_generated_assets": False
+    }
 
     # === Settings for Rollout Worker processes ===
     # Number of rollout worker actors to create for parallel sampling. Setting
@@ -519,8 +574,13 @@ def get_simple_test_config():
     config["model"]["custom_options"] = {}
     config["model"]["custom_preprocessor"] = "procgen_preproc"
 
-    config["env"] = "memory_multi_task"
-    config["env_config"] = {"num_levels": 500, "use_generated_assets": False}
+    config["env"] = "memory_single_task"
+    config["env_config"] = {
+        "is_eval": False,
+        "env_num": 0,
+        "num_levels": 500,
+        "use_generated_assets": False
+    }
 
     config["num_workers"] = 1
     config["num_envs_per_worker"] = 6
@@ -537,14 +597,16 @@ def get_simple_test_config():
     }
 
     # TODO: must use truncate_episodes with v-trace error when evaluation is enabled
-    config["evaluation_interval"] = 1
+    config["evaluation_interval"] = 10
     config["evaluation_num_episodes"] = 10
     config["evaluation_config"] = {
         # Example: overriding env_config, exploration, etc:
-        # "env_config": {...},
+        "env_config": {"is_eval": True, "env_num": 0, "num_levels": 500, "use_generated_assets": False},
         # "explore": False
+        "truncate_episodes": True,
+        "vtrace": False
     }
-    # config["evaluation_num_workers"] = 0
+    # config["evaluation_num_workers"] = 1
     # config["custom_eval_function"] = None
 
     return config
