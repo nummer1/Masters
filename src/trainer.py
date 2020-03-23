@@ -50,6 +50,7 @@ config_test = config.get_simple_test_config()
 checkpoint_freq = 10
 checkpoint_at_end = True
 max_failures = 0
+reuse_actors = True
 # stop = {"training_iteration": 1}
 stop = {"timesteps_total": int(2e8)}
 
@@ -59,8 +60,8 @@ if alg == 'impala':
         name="impala",
         checkpoint_freq=checkpoint_freq,
         checkpoint_at_end=checkpoint_at_end,
-        max_failures=0,   # will restart x times from last ceckpoint after crash
-        reuse_actors=True,
+        max_failures=max_failures,  # will restart x times from last ceckpoint after crash
+        reuse_actors=reuse_actors,
         stop=stop,
         config=config_impala
     )
@@ -70,8 +71,8 @@ elif alg == 'ppo':
         name="ppo",
         checkpoint_freq=checkpoint_freq,
         checkpoint_at_end=checkpoint_at_end,
-        max_failures=0,   # will restart x times from last ceckpoint after crash
-        reuse_actors=True,
+        max_failures=max_failures,  # will restart x times from last ceckpoint after crash
+        reuse_actors=reuse_actors,
         stop=stop,
         config=config_ppo
     )
@@ -81,8 +82,8 @@ elif alg == 'appo':
         name="appo",
         checkpoint_freq=checkpoint_freq,
         checkpoint_at_end=checkpoint_at_end,
-        max_failures=0,   # will restart x times from last ceckpoint after crash
-        reuse_actors=True,
+        max_failures=max_failures,  # will restart x times from last ceckpoint after crash
+        reuse_actors=reuse_actors,
         stop=stop,
         config=config_appo
     )
@@ -92,8 +93,8 @@ elif alg == 'apex':
         name="apex",
         checkpoint_freq=checkpoint_freq,
         checkpoint_at_end=checkpoint_at_end,
-        max_failures=0,   # will restart x times from last ceckpoint after crash
-        reuse_actors=True,
+        max_failures=max_failures,  # will restart x times from last ceckpoint after crash
+        reuse_actors=reuse_actors,
         stop=stop,
         config=config_apex
     )
@@ -103,8 +104,8 @@ elif alg == 'rainbow':
         name="dqn",
         checkpoint_freq=checkpoint_freq,
         checkpoint_at_end=checkpoint_at_end,
-        max_failures=0,   # will restart x times from last ceckpoint after crash
-        reuse_actors=True,
+        max_failures=max_failures,  # will restart x times from last ceckpoint after crash
+        reuse_actors=reuse_actors,
         stop=stop,
         config=config_rainbow
     )
@@ -115,7 +116,7 @@ else:
         name="delete",
         checkpoint_freq=checkpoint_freq,
         checkpoint_at_end=checkpoint_at_end,
-        max_failures=0,   # will restart x times from last ceckpoint after crash
+        max_failures=0,  # will restart x times from last ceckpoint after crash
         reuse_actors=True,
         stop={"training_iteration": 1},
         config=config_test

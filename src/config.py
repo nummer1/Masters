@@ -19,6 +19,12 @@ import numpy as np
 # 'to_base_env', 'try_reset', 'vector_env'
 
 
+# from ray.rllib.evaluation.rollout_worker import get_global_worker
+# # You can use this from any callback to get a reference to the
+# # RolloutWorker running in the process, which in turn has references to
+# # all the policies, etc: see rollout_worker.py for more info.
+# rollout_worker = get_global_worker()
+
 # Callbacks that will be run during various phases of training. These all
 # take a single "info" dict as an argument. For episode callbacks, custom
 # metrics can be attached to the episode by updating the episode object's
@@ -32,11 +38,13 @@ def on_episode_start(info):
     # episode.user_data["test"] = []
     pass
 
+
 def on_episode_step(info):
     # "on_episode_step": None, # arg: {"env": .., "episode": ...}
     # episode = info["episode"]
     # episode.user_data["test"].append(1)
     pass
+
 
 def on_episode_end(info):
     # "on_episode_end": None, # arg: {"env": .., "episode": ...}
@@ -45,13 +53,16 @@ def on_episode_end(info):
     # episode.custom_metrics["test"] = test
     pass
 
+
 def on_sample_end(info):
     # "on_sample_end": None, # arg: {"samples": .., "worker": ...}
     pass
 
+
 def on_train_result(info):
     # "on_train_result": None, # arg: {"trainer": ..., "result": ...}
     pass
+
 
 def on_postprocess_traj(info):
     # "on_postprocess_traj": None, # arg: {
@@ -63,114 +74,65 @@ def on_postprocess_traj(info):
     pass
 
 
-# TODO:
-# config["env_config"] = {
-#     "distrubution_mode": "memory"
-# }
 
+####################
+# configurations   #
+####################
 
 def set_lstm(config):
-    pass
+    config["model"]["custom_model"] = "lstm_model"
+    config["model"]["custom_action_dist"] = None
+    config["model"]["custom_options"] = {}
+    config["model"]["custom_preprocessor"] = "procgen_preproc"
 
 
 def set_transformer(config):
-    pass
+    config["model"]["custom_model"] = "transformer_model"
+    config["model"]["custom_action_dist"] = None
+    config["model"]["custom_options"] = {}
+    config["model"]["custom_preprocessor"] = "procgen_preproc"
 
 
-def get_env_config(is_eval, env_num, num_levels, use_generated_assets):
+def get_env_config(is_eval, env_id, num_levels, use_generated_assets):
     env_config = {
         "is_eval": is_eval,
-        "env_num": env_num,
+        "env_id": env_id,
         "num_levels": num_levels,
         "use_generated_assets": use_generated_assets
     }
     return env_config
 
 
-def set_env(config, is_single, is_eval, env_num, num_levels, use_generated_assets):
+def set_env(config, is_single, env_id, num_levels, use_generated_assets):
     config["env"] = "memory_single_task" if is_single else "memory_multi_task"
-    config["env_config"] = get_env_config(False, env_num, num_levels, use_generated_assets)
+    config["env_config"] = get_env_config(False, env_id, num_levels, use_generated_assets)
 
 
 def set_eval(config):
-    names = ["CoinRun", "StarPilot", "CaveFlyer", "Dodgeball", "FruitBot", "Chaser", "Miner",
-    "Jumper", "Leaper", "Maze", "BigFish", "Heist", "Climber", "Plunder", "Ninja", "Bossfight"]
-    hard = [(5., 10.), (1.5, 35.), (2., 13.4), (1.5, 19.), (-.5, 27.2), (.5, 14.2), (1.5, 20.),
-    (1., 10.), (1.5, 10.), (4., 10.), (0., 40.), (2., 10.), (1., 12.6), (3., 30.), (2., 10.), (.5, 13.)]
-    # easy = CoinRun 5 10 StarPilot 2.5 64 CaveFlyer 3.5 12 Dodgeball 1.5 19 FruitBot -1.5 32.4
-    # Chaser .5 13 Miner 1.5 13 Jumper 3 10 Leaper 3 10 Maze 51 10 BigFish 1 40
-    # Heist 3.5 10 Climber 2 12.6 Plunder 4.5 30 Ninja 3.5 10 BossFight .5 13
-
     config["evaluation_interval"] = 10
-    config["evaluation_num_episodes"] = 10
-    env_config = get_env_config(True, env_num, num_levels, use_generated_assets)
+    config["evaluation_num_episodes"] = 20
+    env_config = get_env_config(True, env_id, num_levels, use_generated_assets)
     config["evaluation_config"] = {
         # set is_eval to true and keep everything else the same
         "env_config": env_config,
         "vtrace": False
     }
-    # config["evaluation_num_workers"] = 0
-    # Customize the evaluation method. This must be a function of signature
-    # (trainer: Trainer, eval_workers: WorkerSet) -> metrics: dict. See the
-    # Trainer._evaluate() method to see the default implementation. The
-    # trainer guarantees all eval workers have the latest policy state before
-    # this function is called.
-    # Rnorm = (R − Rmin)/(Rmax − Rmin),
-    config["custom_eval_function"] = None
 
 
 def set_common_config(config):
-    config["model"]["custom_model"] = "lstm_model"
-    config["model"]["custom_action_dist"] = None
-    config["model"]["custom_options"] = {}
-    config["model"]["custom_preprocessor"] = "procgen_preproc"
-
+    set_env(True, 0, 500, False)
     config["env"] = "memory_single_task"
-    config["env_config"] = {
-        "is_eval": False,
-        "env_num": 0,
-        "num_levels": 500,
-        "use_generated_assets": False
-    }
 
-    # === Settings for Rollout Worker processes ===
-    # Number of rollout worker actors to create for parallel sampling. Setting
-    # this to 0 will force rollouts to be done in the trainer actor.
+    # train_batch_size > sample_batch_size*num_envs_per_worker
     config["num_workers"] = 7
-    # Number of environments to evaluate vectorwise per worker. This enables
-    # model inference batching, which can improve performance for inference
-    # bottlenecked workloads.
     config["num_envs_per_worker"] = 64
-    # Default sample batch size (unroll length). Batches of this size are
-    # collected from rollout workers until train_batch_size is met. When using
-    # multiple envs per worker, this is multiplied by num_envs_per_worker.
-    #
-    # For example, given sample_batch_size=100 and train_batch_size=1000:
-    #   1. RLlib will collect 10 batches of size 100 from the rollout workers.
-    #   2. These batches are concatenated and we perform an epoch of SGD.
-    #
-    # If we further set num_envs_per_worker=5, then the sample batches will be
-    # of size 5*100 = 500, and RLlib will only collect 2 batches per epoch.
-    #
-    # The exact workflow here can vary per algorithm. For example, PPO further
-    # divides the train batch into minibatches for multi-epoch SGD.
     config["sample_batch_size"] = 50
+    config["train_batch_size"] = 10000
     # Whether to rollout "complete_episodes" or "truncate_episodes" to
-    # `sample_batch_size` length unrolls. Episode truncation guarantees more
-    # evenly sized batches, but increases variance as the reward-to-go will
-    # need to be estimated at truncation boundaries.
     config["batch_mode"] = "truncate_episodes"
 
-    # === Settings for the Trainer process ===
-    # Number of GPUs to allocate to the trainer process. Note that not all
-    # algorithms can take advantage of trainer GPUs. This can be fractional
-    # (e.g., 0.3 GPUs).
+    # can be fraction
     config["num_gpus"] = 1
-    # Training batch size, if applicable. Should be >= sample_batch_size.
-    # Samples batches will be concatenated together to a batch of this size,
-    # which is then passed to SGD.
-    config["train_batch_size"] = 10000
-
 
     config["gamma"] = 0.999
     config["lr"] = 5.0 * (10 ** -4)
@@ -185,60 +147,8 @@ def set_common_config(config):
         "on_postprocess_traj": on_postprocess_traj,
     }
 
-    # TODO: below crashes when activated
-    # config["evaluation_interval"] = 10
-    # config["evaluation_num_episodes"] = 10
-
-    # # === Exploration Settings ===
-    # config["explore"] = True
-    # # Provide a dict specifying the Exploration object's config.
-    # config["exploration_config"] = {
-    #     # The Exploration class to use. In the simplest case, this is the name
-    #     # (str) of any class present in the `rllib.utils.exploration` package.
-    #     # You can also provide the python class directly or the full location
-    #     # of your class (e.g. "ray.rllib.utils.exploration.epsilon_greedy.
-    #     # EpsilonGreedy").
-    #     "type": "StochasticSampling",
-    #     # Add constructor kwargs here (if any).
-    # },
-
-     # === Evaluation Settings ===
-    # Evaluate with every `evaluation_interval` training iterations.
-    # The evaluation stats will be reported under the "evaluation" metric key.
-    # Note that evaluation is currently not parallelized, and that for Ape-X
-    # metrics are already only reported for the lowest epsilon workers.
-    config["evaluation_interval"] = 10
-    # Number of episodes to run per evaluation period. If using multiple
-    # evaluation workers, we will run at least this many episodes total.
-    config["evaluation_num_episodes"] = 100
-    # Internal flag that is set to True for evaluation workers.
-    config["in_evaluation"] = False
-    # Typical usage is to pass extra args to evaluation env creator
-    # and to disable exploration by computing deterministic actions.
-    # IMPORTANT NOTE: Policy gradient algorithms are able to find the optimal
-    # policy, even if this is a stochastic one. Setting "explore=False" here
-    # will result in the evaluation workers not using this optimal policy!
-    config["evaluation_config"] = {
-        # TODO
-        # Example: overriding env_config, exploration, etc:
-        # "env_config": {...},
-        # "explore": False
-    }
-    # Number of parallel workers to use for evaluation. Note that this is set
-    # to zero by default, which means evaluation will be run in the trainer
-    # process. If you increase this, it will increase the Ray resource usage
-    # of the trainer since evaluation workers are created separately from
-    # rollout workers.
-    config["evaluation_num_workers"] = 0
-    # Customize the evaluation method. This must be a function of signature
-    # (trainer: Trainer, eval_workers: WorkerSet) -> metrics: dict. See the
-    # Trainer._evaluate() method to see the default implementation. The
-    # trainer guarantees all eval workers have the latest policy state before
-    # this function is called.
-    config["custom_eval_function"] = None
-    # EXPERIMENTAL: use the execution plan based API impl of the algo. Can also
-    # be enabled by setting RLLIB_EXEC_API=1.
-    config["use_exec_api"] = False
+    config["ignore_worker_failures"] = False
+    set_eval(config)
 
 
 def get_config_apex():
@@ -574,10 +484,10 @@ def get_simple_test_config():
     config["model"]["custom_options"] = {}
     config["model"]["custom_preprocessor"] = "procgen_preproc"
 
-    config["env"] = "memory_single_task"
+    config["env"] = "memory_multi_task"
     config["env_config"] = {
         "is_eval": False,
-        "env_num": 0,
+        "env_id": 0,
         "num_levels": 500,
         "use_generated_assets": False
     }
@@ -597,11 +507,11 @@ def get_simple_test_config():
     }
 
     # TODO: must use truncate_episodes with v-trace error when evaluation is enabled
-    config["evaluation_interval"] = 10
+    config["evaluation_interval"] = 1
     config["evaluation_num_episodes"] = 10
     config["evaluation_config"] = {
         # Example: overriding env_config, exploration, etc:
-        "env_config": {"is_eval": True, "env_num": 0, "num_levels": 500, "use_generated_assets": False},
+        "env_config": {"is_eval": True, "env_id": 0, "num_levels": 500, "use_generated_assets": False},
         # "explore": False
         "truncate_episodes": True,
         "vtrace": False

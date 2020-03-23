@@ -6,7 +6,7 @@ import numpy as np
 import gym
 
 import config
-import lstm_model
+import model_custom
 
 
 # TODO: use: rllib rollout --help

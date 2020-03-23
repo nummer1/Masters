@@ -25,11 +25,48 @@ from ray.tune.registry import register_env
 #   CoinRun, CaveFlyer, Dodgeball, Miner, Jumper, Maze, and Heist.
 #   CoinRun might not support it, thought it says so it in the paper
 
-start_level_seed = random.randint(-2 ** 31 + 1, 2 ** 31 - 1)
-possible_levels = 2**32-1
+# -2 ** 31 + 1, 2 ** 31 - 1
+# start_level_seed = random.randint(1, 2 ** 31 - 1)
+start_level_seed = 1387712432
+possible_levels = 2**31-1
+
+# names = ["CoinRun", "StarPilot", "CaveFlyer", "Dodgeball", "FruitBot", "Chaser", "Miner",
+#         "Jumper", "Leaper", "Maze", "BigFish", "Heist", "Climber", "Plunder", "Ninja", "Bossfight"]
+# hard = [(5., 10.), (1.5, 35.), (2., 13.4), (1.5, 19.), (-.5, 27.2), (.5, 14.2), (1.5, 20.),
+#         (1., 10.), (1.5, 10.), (4., 10.), (0., 40.), (2., 10.), (1., 12.6), (3., 30.), (2., 10.), (.5, 13.)]
+# easy = CoinRun 5 10 StarPilot 2.5 64 CaveFlyer 3.5 12 Dodgeball 1.5 19 FruitBot -1.5 32.4
+# Chaser .5 13 Miner 1.5 13 Jumper 3 10 Leaper 3 10 Maze 51 10 BigFish 1 40
+# Heist 3.5 10 Climber 2 12.6 Plunder 4.5 30 Ninja 3.5 10 BossFight .5 13
+env_list = ["procgen:procgen-caveflyer-v0", "procgen:procgen-dodgeball-v0", "procgen:procgen-miner-v0",
+        "procgen:procgen-jumper-v0", "procgen:procgen-maze-v0", "procgen:procgen-heist-v0"]
+norm_const_hard = [(2.0, 13.4), (1.5, 19.0), (1.5, 20.0), (1.0, 10.0), (4.0, 10.0), (2.0, 10.0)]
+norm_const_memory = [(0.0, 13.4), (0.0, 19.0), (0.0, 20.0), (0.0, 10.0), (0.0, 10.0), (0.0, 10.0)]
 
 
-def set_seeds(num_levels):
+class EnvWrapper(gym.Env):
+    """
+    wrapped to normalise rewards
+    """
+    def __init__(self, id, num_levels, start_level, use_generated_assets):
+        name = env_list[id]
+        self.norm = norm_const_hard[id]
+        print("!!", name, "Created")
+        self.env = gym.make(name, num_levels=num_levels, start_level=start_level,
+                use_generated_assets=use_generated_assets, distribution_mode="memory")
+        self.action_space = self.env.action_space
+        self.observation_space = self.env.observation_space
+
+    def reset(self):
+        return self.env.reset()
+
+    def step(self, action):
+        obs, reward, done, info = self.env.step(action)
+        reward = (reward - self.norm[0])/(self.norm[1] - self.norm[0])
+        return obs, reward, done, info
+
+
+def set_seeds(env_config):
+    num_levels = env_config["num_levels"]
     if env_config["is_eval"]:
         # if eval, test on all levels that are not trained on
         start_level = start_level_seed + num_levels
@@ -42,45 +79,21 @@ def set_seeds(num_levels):
 
 # TODO: make shure env runs on all environments in multi-task
 def multi_task_memory(env_config):
-    num_levels, start_level = set_seeds(env_config["num_levels"])
+    num_levels, start_level = set_seeds(env_config)
+    env_id = env_config.vector_index % 6
 
-    if env_config.vector_index % 6==5:
-        print("!! CAVEFLYER CREATED")
-        env = gym.make("procgen:procgen-caveflyer-v0", num_levels=num_levels, start_level=start_level,
-                use_generated_assets=env_config["use_generated_assets"], distribution_mode="memory")
-    elif env_config.vector_index % 6==4:
-        print("!! DODGEBALL CREATED")
-        env = gym.make("procgen:procgen-dodgeball-v0", num_levels=num_levels, start_level=start_level,
-                use_generated_assets=env_config["use_generated_assets"], distribution_mode="memory")
-    elif env_config.vector_index % 6==3:
-        print("!! MINER CREATED")
-        env = gym.make("procgen:procgen-miner-v0", num_levels=num_levels, start_level=start_level,
-                use_generated_assets=env_config["use_generated_assets"], distribution_mode="memory")
-    elif env_config.vector_index % 6==2:
-        print("!! JUMPER CREATED")
-        env = gym.make("procgen:procgen-jumper-v0", num_levels=num_levels, start_level=start_level,
-                use_generated_assets=env_config["use_generated_assets"], distribution_mode="memory")
-    elif env_config.vector_index % 6==1:
-        print("!! MAZE CREATED")
-        env = gym.make("procgen:procgen-maze-v0", num_levels=num_levels, start_level=start_level,
-                use_generated_assets=env_config["use_generated_assets"], distribution_mode="memory")
-    else:
-        print("!! HEIST CREATED")
-        env = gym.make("procgen:procgen-heist-v0", num_levels=num_levels, start_level=start_level,
-                use_generated_assets=env_config["use_generated_assets"], distribution_mode="memory")
+    env = EnvWrapper(env_id, num_levels=num_levels, start_level=start_level,
+            use_generated_assets=env_config["use_generated_assets"])
     return env
 
 
 def single_task_memory(env_config):
     # train on one environment
-    num_levels, start_level = set_seeds(env_config["num_levels"])
+    num_levels, start_level = set_seeds(env_config)
+    env_id = env_config["env_id"]
 
-    envs = ["caveflyer", "dodgeball", "miner", "jumper", "maze", "heist"]
-    name = "procgen:procgen-" + envs[env_config["env_num"]] + "-v0"
-
-    env = gym.make(name, num_levels=num_levels, start_level=start_level,
-            use_generated_assets=env_config["use_generated_assets"], distribution_mode="memory")
-    # ["caveflyer", "dodgeball", "miner", "jumper", "maze", "heist"]
+    env = EnvWrapper(env_id, num_levels=num_levels, start_level=start_level,
+            use_generated_assets=env_config["use_generated_assets"])
     return env
 
 

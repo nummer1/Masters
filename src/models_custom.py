@@ -126,7 +126,8 @@ class TransformerCustomModel(RecurrentTFModelV2):
     input shape is (batch, time_steps, input_size), which is same as LSTM
     """
 
-    def __init__(self, obs_space, action_space, num_outputs, model_config, name, cell_size=256, d_model=8, n_heads=8):
+    def __init__(self, obs_space, action_space, num_outputs, model_config, name,
+            cell_size=256, d_model=8, n_heads=8, plot_model=False):
         super(TransformerCustomModel, self).__init__(obs_space, action_space, num_outputs, model_config, name)
         self.cell_size = cell_size
 
@@ -152,7 +153,10 @@ class TransformerCustomModel(RecurrentTFModelV2):
             inputs=[input_layer],
             outputs=[logits, values])
         self.register_variables(self.rnn_model.variables)
-        self.rnn_model.summary()
+        # self.rnn_model.summary()
+
+        if plot_model:
+            tf.keras.utils.plot_model(self.rnn_model, to_file='model_transformer.png', show_shapes=True)
 
     @override(RecurrentTFModelV2)
     def forward_rnn(self, inputs, state, seq_lens):
@@ -174,7 +178,8 @@ class TransformerCustomModel(RecurrentTFModelV2):
 
 
 class LSTMCustomModel(RecurrentTFModelV2):
-    def __init__(self, obs_space, action_space, num_outputs, model_config, name, cell_size=256):
+    def __init__(self, obs_space, action_space, num_outputs, model_config, name,
+            cell_size=256, plot_model=False):
         super(LSTMCustomModel, self).__init__(obs_space, action_space, num_outputs, model_config, name)
         self.cell_size = cell_size
 
@@ -207,7 +212,10 @@ class LSTMCustomModel(RecurrentTFModelV2):
             inputs=[input_layer, seq_in, state_in_h, state_in_c],
             outputs=[logits, values, state_h, state_c])
         self.register_variables(self.rnn_model.variables)
-        self.rnn_model.summary()
+        # self.rnn_model.summary()
+
+        if plot_model:
+            tf.keras.utils.plot_model(self.rnn_model, to_file='model_lstm.png', show_shapes=True)
 
     @override(RecurrentTFModelV2)
     def forward_rnn(self, inputs, state, seq_lens):
