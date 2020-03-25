@@ -83,14 +83,14 @@ def set_lstm(config):
     config["model"]["custom_model"] = "lstm_model"
     config["model"]["custom_action_dist"] = None
     config["model"]["custom_options"] = {}
-    config["model"]["custom_preprocessor"] = "procgen_preproc"
+    config["model"]["custom_preprocessor"] = None
 
 
 def set_transformer(config):
     config["model"]["custom_model"] = "transformer_model"
     config["model"]["custom_action_dist"] = None
     config["model"]["custom_options"] = {}
-    config["model"]["custom_preprocessor"] = "procgen_preproc"
+    config["model"]["custom_preprocessor"] = None
 
 
 def get_env_config(is_eval, env_id, num_levels, use_generated_assets):
@@ -104,30 +104,32 @@ def get_env_config(is_eval, env_id, num_levels, use_generated_assets):
 
 
 def set_env(config, is_single, env_id, num_levels, use_generated_assets):
+    # if is_single is false, num envs per worker must be a multiple of 6 and env_id is unused
     config["env"] = "memory_single_task" if is_single else "memory_multi_task"
     config["env_config"] = get_env_config(False, env_id, num_levels, use_generated_assets)
 
-
-def set_eval(config):
     config["evaluation_interval"] = 10
-    config["evaluation_num_episodes"] = 20
+    config["evaluation_num_episodes"] = 100
     env_config = get_env_config(True, env_id, num_levels, use_generated_assets)
-    config["evaluation_config"] = {
-        # set is_eval to true and keep everything else the same
-        "env_config": env_config,
-        "vtrace": False
-    }
+    if "vtrace" in config:
+        config["evaluation_config"] = {
+            # set is_eval to true and keep everything else the same
+            "env_config": env_config,
+            "vtrace": False
+        }
+    else:
+        config["evaluation_config"] = {
+            # set is_eval to true and keep everything else the same
+            "env_config": env_config
+        }
+    # TODO set "explore": False for rainbow in evaluation_config
 
 
 def set_common_config(config):
-    set_env(True, 0, 500, False)
-    config["env"] = "memory_single_task"
-
-    # train_batch_size > sample_batch_size*num_envs_per_worker
-    config["num_workers"] = 7
-    config["num_envs_per_worker"] = 64
+    config["num_workers"] = 7  # one base worker is created in addition
+    config["num_envs_per_worker"] = 60  # must be a multiple of 6 if multi_task
     config["sample_batch_size"] = 50
-    config["train_batch_size"] = 10000
+    config["train_batch_size"] = 12000  # train_batch_size > num_envs_per_worker * sample_batch_size
     # Whether to rollout "complete_episodes" or "truncate_episodes" to
     config["batch_mode"] = "truncate_episodes"
 
@@ -135,7 +137,7 @@ def set_common_config(config):
     config["num_gpus"] = 1
 
     config["gamma"] = 0.999
-    config["lr"] = 5.0 * (10 ** -4)
+    config["lr"] = 5e-4
 
     config["log_level"] = "INFO"
     config["callbacks"] = {
@@ -148,64 +150,65 @@ def set_common_config(config):
     }
 
     config["ignore_worker_failures"] = False
-    set_eval(config)
 
 
-def get_config_apex():
-    config = apex.APEX_DEFAULT_CONFIG.copy()
-    set_common_config(config)
+def set_dqn_config(config):
+    config["timesteps_per_iteration"] = 25000
+    config["target_network_update_freq"] = 500000  # Update the target network every `target_network_update_freq` steps.
 
+    # === Optimization ===
+    config["lr"] = 2.5e-4
+    config["lr_schedule"] = None
+    config["adam_epsilon"] = 1e-8  # Adam epsilon hyper parameter
+    config["grad_norm_clipping"] = 40  # If not None, clip gradients during optimization at this value
+    config["learning_starts"] = 50000  # How many steps of the model to sample before learning starts
+
+    # === Replay buffer ===
+    config["buffer_size"] = 2000000  # is async_updates, each worker will have own replay buffer
+    config["prioritized_replay"] = True  # If True prioritized replay buffer will be used.
+    config["prioritized_replay_alpha"] = 0.6  # Alpha parameter for prioritized replay buffer.
+    config["prioritized_replay_beta"] = 0.4  # Beta parameter for sampling from prioritized replay buffer.
+    config["final_prioritized_replay_beta"] = 1.0  # Final value of beta (by default, we use constant beta=0.4).
+    config["prioritized_replay_beta_annealing_timesteps"] = 20000  # Time steps over which the beta parameter is annealed.
+    config["prioritized_replay_eps"] = 1e-6  # Epsilon to add to the TD errors when updating priorities.
+    config["compress_observations"] = True  # Whether to LZ4 compress observations
+
+    # set to -1 to not get error from key_checker
+    config["schedule_max_timesteps"] = -1
+    config["exploration_final_eps"] = -1
+    config["exploration_fraction"] = -1
+    config["beta_annealing_fraction"] = -1
+    config["per_worker_exploration"] = -1
+    config["softmax_temp"] = -1
+    config["soft_q"] = -1
+
+
+def set_apex_config(config):
+    set_dqn_config(config)
     config["optimizer"]["max_weight_sync_delay"] = 400
     config["optimizer"]["num_replay_buffer_shards"] = 4
     config["optimizer"]["debug"] = False
 
     config["n_step"] = 3
-    config["num_gpus"] = 1
-    config["num_workers"] = 32
     config["buffer_size"] = 2000000
-    config["learning_starts"] = 50000
-    config["train_batch_size"] = 512
-    config["sample_batch_size"] = 50
-    config["target_network_update_freq"] = 500000
-    config["timesteps_per_iteration"] = 25000
     config["exploration_config"] = {"type": "PerWorkerEpsilonGreedy"}
     config["worker_side_prioritization"] = True
-    config["min_iter_time_s"] = 30
-
-    return config
+    config["min_iter_time_s"] = 10
 
 
-def get_config_rainbow():
-    config = dqn.DEFAULT_CONFIG.copy()
-    set_common_config(config)
-
-    # config num_workers = 8
-    # learning rate = 2.5 * 10^-4
-
-    # === Model ===
-    # Number of atoms for representing the distribution of return. When
-    # this is greater than 1, distributional Q-learning is used.
-    # the discrete supports are bounded by v_min and v_max
-    # rainbow: "num_atoms": [more than 1],
-    config["num_atoms"] = 51
-    # set v_min and v_max according to your expected range of returns
-    config["v_min"] = -10.0
-    config["v_max"] = 10.0
-    # Whether to use noisy network
-    # rainbow: noisy": True
-    config["noisy"] = True
-    # control the initial value of noisy nets
-    config["sigma0"] = 0.5
-    # Whether to use dueling dqn
+def set_rainbow_config(config):
+    set_dqn_config(config)
+    config["num_atoms"] = 51  # rainbow: "num_atoms": [more than 1]
+    config["v_min"] = -0.25  # expected returns should be between 0 and 1 since they're normalized
+    config["v_max"] = 1.0
+    config["noisy"] = True  # rainbow: noisy = True
+    config["sigma0"] = 0.5  # control the initial value of noisy nets
     config["dueling"] = True
-    # Whether to use double dqn
     config["double_q"] = True
     # Postprocess model outputs with these hidden layers to compute the
     # state and action values. See also the model config in catalog.py.
     config["hiddens"] = [256]
-    # N-step Q learning
-    # rainbow: "n_step": [between 1 and 10],
-    config["n_step"] = 3
+    config["n_step"] = 3  # rainbow: "n_step": [between 1 and 10]
 
     # === Exploration Settings (Experimental) ===
     config["exploration_config"] = {
@@ -214,256 +217,57 @@ def get_config_rainbow():
         # Config for the Exploration class' constructor:
         "initial_epsilon": 1.0,
         "final_epsilon": 0.02,
-        "epsilon_timesteps": 10000,  # Timesteps over which to anneal epsilon.
-
-        # For soft_q, use:
-        # "exploration_config" = {
-        #   "type": "SoftQ"
-        #   "temperature": [float, e.g. 1.0]
-        # }
-    }
-    # Switch to greedy actions in evaluation workers.
-    config["evaluation_config"] = {
-        "explore": False
+        "epsilon_timesteps": 10000  # Timesteps over which to anneal epsilon.
     }
 
-    # If True parameter space noise will be used for exploration
-    # See https://blog.openai.com/better-exploration-with-parameter-noise/
-    config["parameter_noise"] = False
-
-    # Minimum env steps to optimize for per train call. This value does
-    # not affect learning, only the length of iterations.
-    config["timesteps_per_iteration"] = 1000
-    # Update the target network every `target_network_update_freq` steps.
-    config["target_network_update_freq"] = 500
-    # === Replay buffer ===
-    # Size of the replay buffer. Note that if async_updates is set, then
-    # each worker will have a replay buffer of this size.
-    config["buffer_size"] = 50000
-    # If True prioritized replay buffer will be used.
-    config["prioritized_replay"] = True
-    # Alpha parameter for prioritized replay buffer.
-    config["prioritized_replay_alpha"] = 0.6
-    # Beta parameter for sampling from prioritized replay buffer.
-    config["prioritized_replay_beta"] = 0.4
-    # Final value of beta (by default, we use constant beta=0.4).
-    config["final_prioritized_replay_beta"] = 0.4
-    # Time steps over which the beta parameter is annealed.
-    config["prioritized_replay_beta_annealing_timesteps"] = 20000
-    # Epsilon to add to the TD errors when updating priorities.
-    config["prioritized_replay_eps"] = 1e-6
-    # Whether to LZ4 compress observations
-    config["compress_observations"] = True
-
-    # === Optimization ===
-    # Learning rate for adam optimizer
-    config["lr"] = 2.5e-4
-    # Learning rate schedule
-    config["lr_schedule"] = None
-    # Adam epsilon hyper parameter
-    config["adam_epsilon"] = 1e-8
-    # If not None, clip gradients during optimization at this value
-    config["grad_norm_clipping"] = 40
-    # How many steps of the model to sample before learning starts.
-    config["learning_starts"] = 1000
-    # Update the replay buffer with this many samples at once. Note that
-    # this setting applies per-worker if num_workers > 1.
-    config["sample_batch_size"] = 4
-    # Size of a batched sampled from replay buffer for training. Note that
-    # if async_updates is set, then each worker returns gradients for a
-    # batch of this size.
-    config["train_batch_size"] = 32
+    config["parameter_noise"] = False  # parameter noise for exploration
 
     # === Parallelism ===
-    # Number of workers for collecting samples with. This only makes sense
-    # to increase if your environment is particularly slow to sample, or if
-    # you"re using the Async or Ape-X optimizers.
-    config["num_workers"] = 0
-    # Whether to compute priorities on workers.
-    config["worker_side_prioritization"] = False
-    # Prevent iterations from going lower than this time span
-    config["min_iter_time_s"] = 1
-
-    # DEPRECATED VALUES (set to -1 to indicate they have not been overwritten
-    # by user's config). If we don't set them here, we will get an error
-    # from the config-key checker.
-    # "schedule_max_timesteps": DEPRECATED_VALUE,
-    # "exploration_final_eps": DEPRECATED_VALUE,
-    # "exploration_fraction": DEPRECATED_VALUE,
-    # "beta_annealing_fraction": DEPRECATED_VALUE,
-    # "per_worker_exploration": DEPRECATED_VALUE,
-    # "softmax_temp": DEPRECATED_VALUE,
-    # "soft_q": DEPRECATED_VALUE,
-
-    return config
+    config["worker_side_prioritization"] = False  # Whether to compute priorities on workers.
+    config["min_iter_time_s"] = 1  # Prevent iterations from going lower than this time span
 
 
-def get_config_appo():
-    config = impala.DEFAULT_CONFIG.copy()
-    set_common_config(config)
-
-    # Whether to use V-trace weighted advantages. If false, PPO GAE advantages
-    # will be used instead.
-    config["vtrace"] = False
-
-    # == These two options only apply if vtrace: False ==
-    # Should use a critic as a baseline (otherwise don't use value baseline;
-    # required for using GAE).
-    config["use_critic"] = True
-    # If true, use the Generalized Advantage Estimator (GAE)
-    # with a value function, see https://arxiv.org/pdf/1506.02438.pdf.
+def set_ppo_config(config):
+    config["use_critic"] = True  # required for GAE, use critic as baseline
     config["use_gae"] = True
-    # GAE(lambda) parameter
-    config["lambda"] = 0.95
+    config["lambda"] = 0.95  # The GAE(lambda) parameter.
+    config["kl_coeff"] = 0.5  # Initial coefficient for KL divergence.
+    config["kl_target"] = 0.01 # Target value for KL divergence.
 
-    # == PPO surrogate loss options ==
-    config["clip_param"] = 0.2
-
-    # == PPO KL Loss options ==
-    config["use_kl_loss"] = False
-    config["kl_coeff"] = 1.0
-    config["kl_target"] = 0.01
-
-    # == IMPALA optimizer params (see documentation in impala.py) ==
-    config["sample_batch_size"] = 50
-    config["train_batch_size"] = 500
-    config["min_iter_time_s"] = 10
-    config["num_workers"] = 2
-    config["num_gpus"] = 0
-    config["num_data_loader_buffers"] = 1
-    config["minibatch_buffer_size"] = 1
-    config["num_sgd_iter"] = 1
-    config["replay_proportion"] = 0.0
-    config["replay_buffer_num_slots"] = 100
-    config["learner_queue_size"] = 16
-    config["learner_queue_timeout"] = 300
-    config["max_sample_requests_in_flight_per_worker"] = 2
-    config["broadcast_interval"] = 1
-    config["grad_clip"] = 40.0
-    config["opt_type"] = "adam"
-    config["lr"] = 5e-4
-    config["lr_schedule"] = None
-    config["decay"] = 0.99
-    config["momentum"] = 0.0
-    config["epsilon"] = 0.1
-    config["vf_loss_coeff"] = 0.5
-    config["entropy_coeff"] = 0.01
-    config["entropy_coeff_schedule"] = None
-
-    return config
-
-
-def get_config_ppo():
-    config = ppo.DEFAULT_CONFIG.copy()
-    set_common_config(config)
-
-    # Should use a critic as a baseline (otherwise don't use value baseline;
-    # required for using GAE).
-    config["use_critic"] = True
-    # If true, use the Generalized Advantage Estimator (GAE)
-    # with a value function, see https://arxiv.org/pdf/1506.02438.pdf.
-    config["use_gae"] = True
-    # The GAE(lambda) parameter.
-    config["lambda"] = 0.95
-    # Initial coefficient for KL divergence.
-    config["kl_coeff"] = 0.5
-    # Size of batches collected from each worker.
-    config["sample_batch_size"] = 200
-    # Number of timesteps collected for each SGD round. This defines the size
-    # of each SGD epoch.
-    config["train_batch_size"] = 40000
-    # Total SGD batch size across all devices for SGD. This defines the
-    # minibatch size within each epoch.
-    config["sgd_minibatch_size"] = 128
-    # Whether to shuffle sequences in the batch when training (recommended).
-    config["shuffle_sequences"] = True
-    # Number of SGD iterations in each outer loop (i.e., number of epochs to
-    # execute per train batch).
+    config["sgd_minibatch_size"] = 100
+    config["shuffle_sequences"] = True  # Whether to shuffle sequences in the batch when training (recommended).
     config["num_sgd_iter"] = 30
-    # Stepsize of SGD.
-    config["lr"] = 5e-4
-    # Learning rate schedule.
-    config["lr_schedule"] = None
-    # Share layers for value function. If you set this to True, it's important
-    # to tune vf_loss_coeff.
-    config["vf_share_layers"] = False
-    # Coefficient of the value function loss. IMPORTANT: you must tune this if
-    # you set vf_share_layers: True.
-    config["vf_loss_coeff"] = 1.0
-    # Coefficient of the entropy regularizer.
+
+    config["vf_share_layers"] = True
+    config["vf_loss_coeff"] = 0.5  # IMPORTANT: you must tune this if vf_share_layers = True
     config["entropy_coeff"] = 0.01
-    # Decay schedule for the entropy regularizer.
     config["entropy_coeff_schedule"] = None
-    # PPO clip parameter.
     config["clip_param"] = 0.2
-    # Clip param for the value function. Note that this is sensitive to the
-    # scale of the rewards. If your expected V is large, increase this.
-    config["vf_clip_param"] = 10.0
-    # If specified, clip the global norm of gradients by this amount.
-    config["grad_clip"] = None
-    # Target value for KL divergence.
-    config["kl_target"] = 0.01
-    # Whether to rollout "complete_episodes" or "truncate_episodes".
+
+    config["vf_clip_param"] = 10.0  # Sensitive to the scale of the rewards. If your expected V is large, increase this.
+    config["grad_clip"] = None  # If specified, clip the global norm of gradients by this amount.
+
     config["batch_mode"] = "truncate_episodes"
-    # Uses the sync samples optimizer instead of the multi-gpu one. This is
-    # usually slower, but you might want to try it if you run into issues with
-    # the default optimizer.
-    config["simple_optimizer"] = False
-
-    return config
 
 
-def get_config_impala():
-    config = impala.DEFAULT_CONFIG.copy()
-    set_common_config(config)
-
-    # V-trace params (see vtrace.py).
+def set_impala_config(config):
     config["vtrace"] = True
     config["vtrace_clip_rho_threshold"] = 1.0
     config["vtrace_clip_pg_rho_threshold"] = 1.0
 
-    # System params.
-    #
-    # == Overview of data flow in IMPALA ==
-    # 1. Policy evaluation in parallel across `num_workers` actors produces
-    #    batches of size `sample_batch_size * num_envs_per_worker`.
-    # 2. If enabled, the replay buffer stores and produces batches of size
-    #    `sample_batch_size * num_envs_per_worker`.
-    # 3. If enabled, the minibatch ring buffer stores and replays batches of
-    #    size `train_batch_size` up to `num_sgd_iter` times per batch.
-    # 4. The learner thread executes data parallel SGD across `num_gpus` GPUs
-    #    on batches of size `train_batch_size`.
-    #
-    # config["sample_batch_size"] = 50
-    # config["train_batch_size"] = 8192
-    # config["num_workers"] = 7
-
-    # set >1 to load data into GPUs in parallel. Increases GPU memory usage
-    # proportionally with the number of buffers.
-    config["num_data_loader_buffers"] = 1
-    # how many train batches should be retained for minibatching. This conf
-    # only has an effect if `num_sgd_iter > 1`.
-    config["minibatch_buffer_size"] = 1
-    # number of passes to make over each train batch
-    config["num_sgd_iter"] = 3
-    # set >0 to enable experience replay. Saved samples will be replayed with
-    # a p:1 proportion to new data samples.
-    config["replay_proportion"] = 0.8
-    # number of sample batches to store for replay. The number of transitions
-    # saved total will be (replay_buffer_num_slots * sample_batch_size).
-    config["replay_buffer_num_slots"] = 1024
-    # max queue size for train batches feeding into the learner
-    config["learner_queue_size"] = 16
-
+    config["num_data_loader_buffers"] = 1  # larger number goes faster but uses more GPU memory
+    config["minibatch_buffer_size"] = 1  # number of train batches to  retain for minibatching, only effect if num_sgd_iter > 1
+    config["num_sgd_iter"] = 3  # number of passes over each train batch
+    config["replay_proportion"] = 0.0  # set to > 0 to use replay buffer
+    config["replay_buffer_num_slots"] = 1024  # number of sample batches to store for replay
+    config["learner_queue_size"] = 16  # training batches in queue to learner
 
     # Learning params.
     config["grad_clip"] = 40.0
     # either "adam" or "rmsprop"
     config["opt_type"] = "adam"
-    config["lr"] = 5e-4
-    config["lr_schedule"] = None
 
-    # rmsprop considered
+    # only used if rmsprop
     config["decay"] = 0.99
     config["momentum"] = 0.0
     config["epsilon"] = 0.1
@@ -473,50 +277,70 @@ def get_config_impala():
     config["entropy_coeff"] = 0.01
     config["entropy_coeff_schedule"] = None
 
+
+def set_appo_config(config):
+    set_impala_config(config)
+    config["vtrace"] = False  # v-trace of GAE advantages
+
+    # only used if v_trace is False
+    config["use_critic"] = True
+    config["use_gae"] = True
+    config["lambda"] = 0.95
+
+    config["clip_param"] = 0.2
+    config["use_kl_loss"] = False
+    config["kl_coeff"] = 0.5
+    config["kl_target"] = 0.01
+
+
+def get_config_apex():
+    config = apex.APEX_DEFAULT_CONFIG.copy()
+    set_common_config(config)
+    set_apex_config(config)
     return config
+
+
+def get_config_rainbow():
+    config = dqn.DEFAULT_CONFIG.copy()
+    set_common_config(config)
+    set_rainbow_config(config)
+    return config
+
+
+def get_config_appo():
+    config = impala.DEFAULT_CONFIG.copy()
+    set_common_config(config)
+    set_appo_config(config)
+    return config
+
+
+def get_config_ppo():
+    config = ppo.DEFAULT_CONFIG.copy()
+    set_common_config(config)
+    set_ppo_config(config)
+    return config
+
+
+def get_config_impala():
+    config = impala.DEFAULT_CONFIG.copy()
+    set_common_config(config)
+    set_impala_config(config)
+    return config
+
+
+def no_buffer(config):
+    config["buffer_size"] = 2000000
 
 
 def get_simple_test_config():
     # used to check for bugs
-    config = impala.DEFAULT_CONFIG.copy()
-    config["model"]["custom_model"] = "transformer_model"  # "lstm_model"
-    config["model"]["custom_action_dist"] = None
-    config["model"]["custom_options"] = {}
-    config["model"]["custom_preprocessor"] = "procgen_preproc"
-
-    config["env"] = "memory_multi_task"
-    config["env_config"] = {
-        "is_eval": False,
-        "env_id": 0,
-        "num_levels": 500,
-        "use_generated_assets": False
-    }
+    config = get_config_impala()
 
     config["num_workers"] = 1
     config["num_envs_per_worker"] = 6
     config["num_gpus"] = 0
 
-    config["log_level"] = "INFO"
-    config["callbacks"] = {
-        "on_episode_start": on_episode_start,
-        "on_episode_step": on_episode_step,
-        "on_episode_end": on_episode_end,
-        "on_sample_end": on_sample_end,
-        "on_train_result": on_train_result,
-        "on_postprocess_traj": on_postprocess_traj,
-    }
-
-    # TODO: must use truncate_episodes with v-trace error when evaluation is enabled
     config["evaluation_interval"] = 1
     config["evaluation_num_episodes"] = 10
-    config["evaluation_config"] = {
-        # Example: overriding env_config, exploration, etc:
-        "env_config": {"is_eval": True, "env_id": 0, "num_levels": 500, "use_generated_assets": False},
-        # "explore": False
-        "truncate_episodes": True,
-        "vtrace": False
-    }
-    # config["evaluation_num_workers"] = 1
-    # config["custom_eval_function"] = None
 
     return config
