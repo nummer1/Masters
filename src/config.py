@@ -126,7 +126,7 @@ def set_env(config, is_single, env_id, num_levels, use_generated_assets):
 
 
 def set_common_config(config):
-    config["num_workers"] = 7  # one base worker is created in addition
+    config["num_workers"] = 5  # one base worker is created in addition
     config["num_envs_per_worker"] = 60  # must be a multiple of 6 if multi_task
     config["sample_batch_size"] = 50
     config["train_batch_size"] = 12000  # train_batch_size > num_envs_per_worker * sample_batch_size

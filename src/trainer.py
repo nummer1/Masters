@@ -23,7 +23,7 @@ use_generated_assets = True if sys.argv[6] == 't' else False
 if alg == "test":
     ray.init()
 else:
-    ray.init(memory=64*1024*1024*1024, object_store_memory=32*1024*1024*1024)
+    ray.init(memory=60*1024*1024*1024, object_store_memory=30*1024*1024*1024)
         # driver_object_store_memory=1*1024*1024*1024)
 
 ModelCatalog.register_custom_model("lstm_model", models_custom.LSTMCustomModel)
@@ -60,7 +60,7 @@ config.set_env(conf, is_single, env_id, num_levels, use_generated_assets)
 
 checkpoint_freq = 10
 checkpoint_at_end = True
-max_failures = 0
+max_failures = 10
 reuse_actors = True
 stop = {"training_iteration": 1} if alg == "test" else {"timesteps_total": int(2e8)}
 
