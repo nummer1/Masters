@@ -61,7 +61,8 @@ class AdvancedAdd(Layer):
 
 
 def convNetwork(input_layer):
-    reshape = TimeDistributed(Reshape((64, 64, 3)))(input_layer)
+    scale = Lambda(lambda x: x /255)(input_layer)
+    reshape = TimeDistributed(Reshape((64, 64, 3)))(scale)
     conv1 = TimeDistributed(Conv2D(
         filters=64, kernel_size=(8, 8), strides=(4, 4), name="conv1",
         padding='same', data_format=None, dilation_rate=(1, 1), activation=tf.nn.relu))(reshape)
@@ -219,6 +220,7 @@ class LSTMCustomModel(RecurrentTFModelV2):
 
     @override(RecurrentTFModelV2)
     def forward_rnn(self, inputs, state, seq_lens):
+        # print(inputs)
         model_out, self._value_out, h, c = self.rnn_model([inputs, seq_lens] + state)
         return model_out, [h, c]
 

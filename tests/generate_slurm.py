@@ -11,7 +11,7 @@ with open("experiments.txt", "r") as experiments:
         job_name = '-'.join(name)
         output = job_name + "-srun.out"
         run = ' '.join(line)
-        run = "src/trainer.py " + run
+        run = " src/trainer.py " + run
 
         lines = base.split('\n')
         for i, line in enumerate(lines):
@@ -22,7 +22,7 @@ with open("experiments.txt", "r") as experiments:
                 lines[i] += ('"' + job_name + '"')
             if line == "#SBATCH --output=":
                 lines[i] += output
-            if line == "python ":
+            if line == "python":
                 lines[i] += run
         lines = '\n'.join(lines)
         with open(job_name + '.slurm', 'w') as out:

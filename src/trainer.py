@@ -60,7 +60,7 @@ config.set_env(conf, is_single, env_id, num_levels, use_generated_assets)
 
 checkpoint_freq = 10
 checkpoint_at_end = True
-max_failures = 10
+max_failures = 200
 reuse_actors = True
 stop = {"training_iteration": 1} if alg == "test" else {"timesteps_total": int(2e8)}
 

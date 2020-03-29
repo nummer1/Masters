@@ -43,26 +43,26 @@ norm_const_hard = [(2.0, 13.4), (1.5, 19.0), (1.5, 20.0), (1.0, 10.0), (4.0, 10.
 norm_const_memory = [(0.0, 13.4), (0.0, 19.0), (0.0, 20.0), (0.0, 10.0), (0.0, 10.0), (0.0, 10.0)]
 
 
-class EnvWrapper(gym.Env):
-    """
-    wrapped to normalise rewards
-    """
-    def __init__(self, id, num_levels, start_level, use_generated_assets):
-        name = env_list[id]
-        self.norm = norm_const_hard[id]
-        print("!!", name, "Created")
-        self.env = gym.make(name, num_levels=num_levels, start_level=start_level,
-                use_generated_assets=use_generated_assets, distribution_mode="memory")
-        self.action_space = self.env.action_space
-        self.observation_space = self.env.observation_space
-
-    def reset(self):
-        return self.env.reset()
-
-    def step(self, action):
-        obs, reward, done, info = self.env.step(action)
-        reward = (reward - self.norm[0])/(self.norm[1] - self.norm[0])
-        return obs, reward, done, info
+# class EnvWrapper(gym.Env):
+#     """
+#     wrapped to normalise rewards
+#     """
+#     def __init__(self, id, num_levels, start_level, use_generated_assets):
+#         name = env_list[id]
+#         self.norm = norm_const_memory[id]
+#         print("!!", name, "Created")
+#         self.env = gym.make(name, num_levels=num_levels, start_level=start_level,
+#                 use_generated_assets=use_generated_assets, distribution_mode="memory")
+#         self.action_space = self.env.action_space
+#         self.observation_space = self.env.observation_space
+#
+#     def reset(self):
+#         return self.env.reset()
+#
+#     def step(self, action):
+#         obs, reward, done, info = self.env.step(action)
+#         reward = (reward - self.norm[0])/(self.norm[1] - self.norm[0])
+#         return obs, reward, done, info
 
 
 def set_seeds(env_config):
@@ -81,9 +81,12 @@ def set_seeds(env_config):
 def multi_task_memory(env_config):
     num_levels, start_level = set_seeds(env_config)
     env_id = env_config.vector_index % 6
+    name = env_list[env_id]
 
-    env = EnvWrapper(env_id, num_levels=num_levels, start_level=start_level,
-            use_generated_assets=env_config["use_generated_assets"])
+    # env = EnvWrapper(env_id, num_levels=num_levels, start_level=start_level,
+    #         use_generated_assets=env_config["use_generated_assets"])
+    env = gym.make(name, num_levels=num_levels, start_level=start_level,
+                use_generated_assets=env_config["use_generated_assets"], distribution_mode="memory")
     return env
 
 
@@ -91,9 +94,12 @@ def single_task_memory(env_config):
     # train on one environment
     num_levels, start_level = set_seeds(env_config)
     env_id = env_config["env_id"]
+    name = env_list[env_id]
 
-    env = EnvWrapper(env_id, num_levels=num_levels, start_level=start_level,
-            use_generated_assets=env_config["use_generated_assets"])
+    # env = EnvWrapper(env_id, num_levels=num_levels, start_level=start_level,
+    #         use_generated_assets=env_config["use_generated_assets"])
+    env = gym.make(name, num_levels=num_levels, start_level=start_level,
+                use_generated_assets=env_config["use_generated_assets"], distribution_mode="memory")
     return env
 
 
