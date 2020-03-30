@@ -127,9 +127,9 @@ def set_env(config, is_single, env_id, num_levels, use_generated_assets):
 
 def set_common_config(config):
     config["num_workers"] = 5  # one base worker is created in addition
-    config["num_envs_per_worker"] = 60  # must be a multiple of 6 if multi_task
+    config["num_envs_per_worker"] = 30  # must be a multiple of 6 if multi_task
     config["sample_batch_size"] = 500
-    config["train_batch_size"] = 30000  # train_batch_size > num_envs_per_worker * sample_batch_size
+    config["train_batch_size"] = 15000  # train_batch_size > num_envs_per_worker * sample_batch_size
     # Whether to rollout "complete_episodes" or "truncate_episodes" to
     config["batch_mode"] = "truncate_episodes"
 
@@ -255,12 +255,12 @@ def set_impala_config(config):
     config["vtrace_clip_rho_threshold"] = 1.0
     config["vtrace_clip_pg_rho_threshold"] = 1.0
 
-    config["num_data_loader_buffers"] = 2  # larger number goes faster but uses more GPU memory
+    config["num_data_loader_buffers"] = 1  # larger number goes faster but uses more GPU memory
     config["minibatch_buffer_size"] = 1  # number of train batches to  retain for minibatching, only effect if num_sgd_iter > 1
     config["num_sgd_iter"] = 3  # number of passes over each train batch
     config["replay_proportion"] = 0.8  # set to > 0 to use replay buffer
-    config["replay_buffer_num_slots"] = 1024  # number of sample batches to store for replay
-    config["learner_queue_size"] = 16  # training batches in queue to learner
+    config["replay_buffer_num_slots"] = 30000  # number of sample batches to store for replay
+    config["learner_queue_size"] = 10  # training batches in queue to learner
 
     # Learning params.
     config["grad_clip"] = 40.0
@@ -334,7 +334,17 @@ def get_simple_test_config():
 
     config["num_workers"] = 1
     config["num_envs_per_worker"] = 6
+    config["sample_batch_size"] = 500
+    config["train_batch_size"] = 6*500
     config["num_gpus"] = 0
+    config["batch_mode"] = "truncate_episodes"
+
+    config["num_data_loader_buffers"] = 1  # larger number goes faster but uses more GPU memory
+    config["minibatch_buffer_size"] = 1  # number of train batches to  retain for minibatching, only effect if num_sgd_iter > 1
+    config["num_sgd_iter"] = 1  # number of passes over each train batch
+    config["replay_proportion"] = 0.5  # set to > 0 to use replay buffer
+    config["replay_buffer_num_slots"] = 6*500  # number of sample batches to store for replay
+    config["learner_queue_size"] = 1  # training batches in queue to learner
 
     config["eager"] = False
     config["log_level"] = "WARNING"
