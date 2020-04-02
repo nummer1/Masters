@@ -115,12 +115,14 @@ def set_env(config, is_single, env_id, num_levels, use_generated_assets):
         config["evaluation_config"] = {
             # set is_eval to true and keep everything else the same
             "env_config": env_config,
+            "num_envs_per_worker": 30,
             "vtrace": False
         }
     else:
         config["evaluation_config"] = {
             # set is_eval to true and keep everything else the same
-            "env_config": env_config
+            "env_config": env_config,
+            "num_envs_per_worker": 30
         }
     # TODO set "explore": False for rainbow in evaluation_config
 
@@ -128,8 +130,8 @@ def set_env(config, is_single, env_id, num_levels, use_generated_assets):
 def set_common_config(config):
     config["num_workers"] = 5  # one base worker is created in addition
     config["num_envs_per_worker"] = 30  # must be a multiple of 6 if multi_task
-    config["sample_batch_size"] = 500
-    config["train_batch_size"] = 15000  # train_batch_size > num_envs_per_worker * sample_batch_size
+    config["rollout_fragment_length"] = 500
+    config["train_batch_size"] = 15000  # train_batch_size > num_envs_per_worker * rollout_fragment_length
     # Whether to rollout "complete_episodes" or "truncate_episodes" to
     config["batch_mode"] = "truncate_episodes"
 
@@ -154,7 +156,7 @@ def set_common_config(config):
 
 def set_dqn_config(config):
     config["timesteps_per_iteration"] = 25000
-    config["target_network_update_freq"] = 500000  # Update the target network every `target_network_update_freq` steps.
+    config["target_network_update_freq"] = 50000  # Update the target network every `target_network_update_freq` steps.
 
     # === Optimization ===
     config["lr"] = 2.5e-4
@@ -164,7 +166,7 @@ def set_dqn_config(config):
     config["learning_starts"] = 50000  # How many steps of the model to sample before learning starts
 
     # === Replay buffer ===
-    config["buffer_size"] = 2000000  # is async_updates, each worker will have own replay buffer
+    config["buffer_size"] = 1000000  # is async_updates, each worker will have own replay buffer
     config["prioritized_replay"] = True  # If True prioritized replay buffer will be used.
     config["prioritized_replay_alpha"] = 0.6  # Alpha parameter for prioritized replay buffer.
     config["prioritized_replay_beta"] = 0.4  # Beta parameter for sampling from prioritized replay buffer.
@@ -332,12 +334,18 @@ def get_simple_test_config():
     # used to check for bugs
     config = get_config_impala()
 
+    # config["preprocessor_pref"] = None  # Does nothing
+    # config["model"]["max_seq_len"] = 20
+
     config["num_workers"] = 1
     config["num_envs_per_worker"] = 6
-    config["sample_batch_size"] = 500
+    config["rollout_fragment_length"] = 500
     config["train_batch_size"] = 6*500
     config["num_gpus"] = 0
+    config["evaluation_config"]["num_envs_per_worker"] = 6
     config["batch_mode"] = "truncate_episodes"
+    config["minibatch_buffer_size"] = 1  # number of train batches to  retain for minibatching, only effect if num_sgd_iter > 1
+    config["num_sgd_iter"] = 6
 
     config["num_data_loader_buffers"] = 1  # larger number goes faster but uses more GPU memory
     config["minibatch_buffer_size"] = 1  # number of train batches to  retain for minibatching, only effect if num_sgd_iter > 1
@@ -347,7 +355,7 @@ def get_simple_test_config():
     config["learner_queue_size"] = 1  # training batches in queue to learner
 
     config["eager"] = False
-    config["log_level"] = "WARNING"
+    config["log_level"] = "INFO"
 
     config["evaluation_interval"] = 1
     config["evaluation_num_episodes"] = 10

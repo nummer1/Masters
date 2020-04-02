@@ -39,8 +39,8 @@ possible_levels = 2**31-1
 # Heist 3.5 10 Climber 2 12.6 Plunder 4.5 30 Ninja 3.5 10 BossFight .5 13
 env_list = ["procgen:procgen-caveflyer-v0", "procgen:procgen-dodgeball-v0", "procgen:procgen-miner-v0",
         "procgen:procgen-jumper-v0", "procgen:procgen-maze-v0", "procgen:procgen-heist-v0"]
-norm_const_hard = [(2.0, 13.4), (1.5, 19.0), (1.5, 20.0), (1.0, 10.0), (4.0, 10.0), (2.0, 10.0)]
-norm_const_memory = [(0.0, 13.4), (0.0, 19.0), (0.0, 20.0), (0.0, 10.0), (0.0, 10.0), (0.0, 10.0)]
+# norm_const_hard = [(2.0, 13.4), (1.5, 19.0), (1.5, 20.0), (1.0, 10.0), (4.0, 10.0), (2.0, 10.0)]
+# norm_const_memory = [(0.0, 13.4), (0.0, 19.0), (0.0, 20.0), (0.0, 10.0), (0.0, 10.0), (0.0, 10.0)]
 
 
 # class EnvWrapper(gym.Env):
@@ -77,7 +77,7 @@ def set_seeds(env_config):
     return num_levels, start_level
 
 
-# TODO: make shure env runs on all environments in multi-task
+# TODO: make shure eval is run on all environments in multitask
 def multi_task_memory(env_config):
     num_levels, start_level = set_seeds(env_config)
     env_id = env_config.vector_index % 6

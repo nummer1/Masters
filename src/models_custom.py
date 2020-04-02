@@ -18,6 +18,11 @@ from tensorflow.keras import backend as K
 # import transformer
 
 
+def preproc(inputs):
+    inputs = tf.math.scalar_mul(1/255, inputs)
+    return inputs
+
+
 class AdvancedAdd(Layer):
     def __init__(self, activation=None, use_bias=False,
             bias_initializer='zeros', bias_regularizer=None, bias_constraint=None, **kwargs):
@@ -61,8 +66,7 @@ class AdvancedAdd(Layer):
 
 
 def convNetwork(input_layer):
-    scale = Lambda(lambda x: x * (1/255))(input_layer)
-    reshape = TimeDistributed(Reshape((64, 64, 3)))(scale)
+    reshape = TimeDistributed(Reshape((64, 64, 3)))(input_layer)
     conv1 = TimeDistributed(Conv2D(
         filters=64, kernel_size=(8, 8), strides=(4, 4), name="conv1",
         padding='same', data_format=None, dilation_rate=(1, 1), activation=tf.nn.relu))(reshape)
@@ -161,8 +165,9 @@ class TransformerCustomModel(RecurrentTFModelV2):
 
     @override(RecurrentTFModelV2)
     def forward_rnn(self, inputs, state, seq_lens):
-        inputs = tf.multiply(inputs, 1/255)
-        model_out, self._value_out = self.rnn_model([inputs, seq_lens])
+        inputs = preproc(inputs)
+        # model_out, self._value_out = self.rnn_model([inputs, seq_lens])
+        model_out, self._value_out = self.rnn_model([inputs])
         # return output and new states
         return model_out, state
 
@@ -221,9 +226,7 @@ class LSTMCustomModel(RecurrentTFModelV2):
 
     @override(RecurrentTFModelV2)
     def forward_rnn(self, inputs, state, seq_lens):
-        # print(inputs)
-        # inputs = tf.keras.backend.print_tensor(inputs, message='before = ')
-        inputs = tf.multiply(inputs, 1/255)
+        inputs = preproc(inputs)
         model_out, self._value_out, h, c = self.rnn_model([inputs, seq_lens] + state)
         return model_out, [h, c]
 
@@ -241,11 +244,15 @@ class LSTMCustomModel(RecurrentTFModelV2):
 
 
 class ProcgenPreprocessor(Preprocessor):
+    """
+    Custom preprocessor is depreaceated by rllib, not in use
+    """
     def _init_shape(self, obs_space, options):
+        # obs_space is Box(64, 64, 3)
         return obs_space.shape
 
     def transform(self, observation):
-        # observation is shape [64, 64, 3]
+        # observation is numpy array with shape [64, 64, 3]
         return observation
 
 

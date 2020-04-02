@@ -14,6 +14,8 @@ import model_custom
 # TODO: make modular and get trainers from trainer.py
 ray.init()
 ModelCatalog.register_custom_model("lstm_model", lstm_model.LSTMCustomModel)
+ModelCatalog.register_custom_model("transformer_model", models_custom.TransformerCustomModel)
+ModelCatalog.register_custom_preprocessor("procgen_preproc", models_custom.ProcgenPreprocessor)
 config = config.get_config_impala()
 
 trainer = impala.ImpalaAgent(config=config, env="GuessingGame-v0")
