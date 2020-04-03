@@ -79,38 +79,33 @@ def on_postprocess_traj(info):
 # configurations   #
 ####################
 
-def set_lstm(config):
-    config["model"]["custom_model"] = "lstm_model"
+def set_model(config, model_name):
+    model_name = model_name + "_model"
+    config["model"]["custom_model"] = model_name
     config["model"]["custom_action_dist"] = None
     config["model"]["custom_options"] = {}
     config["model"]["custom_preprocessor"] = None
 
 
-def set_transformer(config):
-    config["model"]["custom_model"] = "transformer_model"
-    config["model"]["custom_action_dist"] = None
-    config["model"]["custom_options"] = {}
-    config["model"]["custom_preprocessor"] = None
-
-
-def get_env_config(is_eval, env_id, num_levels, use_generated_assets):
+def get_env_config(is_eval, env_id, num_levels, use_generated_assets, dist):
     env_config = {
         "is_eval": is_eval,
         "env_id": env_id,
         "num_levels": num_levels,
-        "use_generated_assets": use_generated_assets
+        "use_generated_assets": use_generated_assets,
+        "dist": dist  # easy, hard, memory
     }
     return env_config
 
 
-def set_env(config, is_single, env_id, num_levels, use_generated_assets):
+def set_env(config, is_single, env_id, num_levels, use_generated_assets, dist):
     # if is_single is false, num envs per worker must be a multiple of 6 and env_id is unused
-    config["env"] = "memory_single_task" if is_single else "memory_multi_task"
-    config["env_config"] = get_env_config(False, env_id, num_levels, use_generated_assets)
+    config["env"] = "single_task" if is_single else "multi_task"
+    config["env_config"] = get_env_config(False, env_id, num_levels, use_generated_assets, dist)
 
     config["evaluation_interval"] = 10
     config["evaluation_num_episodes"] = 100
-    env_config = get_env_config(True, env_id, num_levels, use_generated_assets)
+    env_config = get_env_config(True, env_id, num_levels, use_generated_assets, dist)
     if "vtrace" in config:
         config["evaluation_config"] = {
             # set is_eval to true and keep everything else the same

@@ -34,15 +34,12 @@ possible_levels = 2**31-1
 #         "Jumper", "Leaper", "Maze", "BigFish", "Heist", "Climber", "Plunder", "Ninja", "Bossfight"]
 # hard = [(5., 10.), (1.5, 35.), (2., 13.4), (1.5, 19.), (-.5, 27.2), (.5, 14.2), (1.5, 20.),
 #         (1., 10.), (1.5, 10.), (4., 10.), (0., 40.), (2., 10.), (1., 12.6), (3., 30.), (2., 10.), (.5, 13.)]
-# easy = CoinRun 5 10 StarPilot 2.5 64 CaveFlyer 3.5 12 Dodgeball 1.5 19 FruitBot -1.5 32.4
-# Chaser .5 13 Miner 1.5 13 Jumper 3 10 Leaper 3 10 Maze 51 10 BigFish 1 40
-# Heist 3.5 10 Climber 2 12.6 Plunder 4.5 30 Ninja 3.5 10 BossFight .5 13
 env_list = ["procgen:procgen-caveflyer-v0", "procgen:procgen-dodgeball-v0", "procgen:procgen-miner-v0",
         "procgen:procgen-jumper-v0", "procgen:procgen-maze-v0", "procgen:procgen-heist-v0"]
 # norm_const_hard = [(2.0, 13.4), (1.5, 19.0), (1.5, 20.0), (1.0, 10.0), (4.0, 10.0), (2.0, 10.0)]
 # norm_const_memory = [(0.0, 13.4), (0.0, 19.0), (0.0, 20.0), (0.0, 10.0), (0.0, 10.0), (0.0, 10.0)]
 
-
+# TODO: use gym wrapper instead
 # class EnvWrapper(gym.Env):
 #     """
 #     wrapped to normalise rewards
@@ -77,31 +74,28 @@ def set_seeds(env_config):
     return num_levels, start_level
 
 
-# TODO: make shure eval is run on all environments in multitask
-def multi_task_memory(env_config):
+def multi_task(env_config):
     num_levels, start_level = set_seeds(env_config)
     env_id = env_config.vector_index % 6
     name = env_list[env_id]
 
-    # env = EnvWrapper(env_id, num_levels=num_levels, start_level=start_level,
-    #         use_generated_assets=env_config["use_generated_assets"])
     env = gym.make(name, num_levels=num_levels, start_level=start_level,
-                use_generated_assets=env_config["use_generated_assets"], distribution_mode="memory")
+            use_generated_assets=env_config["use_generated_assets"],
+            distribution_mode=env_config["dist"])
     return env
 
 
-def single_task_memory(env_config):
+def single_task(env_config):
     # train on one environment
     num_levels, start_level = set_seeds(env_config)
     env_id = env_config["env_id"]
     name = env_list[env_id]
 
-    # env = EnvWrapper(env_id, num_levels=num_levels, start_level=start_level,
-    #         use_generated_assets=env_config["use_generated_assets"])
     env = gym.make(name, num_levels=num_levels, start_level=start_level,
-                use_generated_assets=env_config["use_generated_assets"], distribution_mode="memory")
+                use_generated_assets=env_config["use_generated_assets"],
+                distribution_mode=env_config["dist"])
     return env
 
 
-register_env("memory_multi_task", multi_task_memory)
-register_env("memory_single_task", single_task_memory)
+register_env("multi_task", multi_task)
+register_env("single_task", single_task)

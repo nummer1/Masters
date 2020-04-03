@@ -14,10 +14,11 @@ import models_custom
 
 alg = sys.argv[1]
 model = sys.argv[2]
-is_single = True if sys.argv[3] == 't' else False
-env_id = int(sys.argv[4])
-num_levels = int(sys.argv[5])
-use_generated_assets = True if sys.argv[6] == 't' else False
+dist = sys.argv[3]
+is_single = True if sys.argv[4] == 't' else False
+env_id = int(sys.argv[5])
+num_levels = int(sys.argv[6])
+use_generated_assets = True if sys.argv[7] == 't' else False
 
 # memory is total amount of memory available
 if alg == "test":
@@ -28,6 +29,7 @@ else:
 
 ModelCatalog.register_custom_model("lstm_model", models_custom.LSTMCustomModel)
 ModelCatalog.register_custom_model("transformer_model", models_custom.TransformerCustomModel)
+ModelCatalog.register_custom_model("simple_model", models_custom.SimpleCustomModel)
 ModelCatalog.register_custom_preprocessor("procgen_preproc", models_custom.ProcgenPreprocessor)
 
 config_dict = {
@@ -49,13 +51,8 @@ alg_dict = {
 }
 
 conf = config_dict[alg]()
-
-if model == 'lstm':
-    config.set_lstm(conf)
-elif model == 'transformer':
-    config.set_transformer(conf)
-
-config.set_env(conf, is_single, env_id, num_levels, use_generated_assets)
+config.set_model(conf, model)
+config.set_env(conf, is_single, env_id, num_levels, use_generated_assets, dist)
 
 
 checkpoint_freq = 10
@@ -63,10 +60,15 @@ checkpoint_at_end = True
 max_failures = 100
 reuse_actors = True
 stop = {"training_iteration": 2} if alg == "test" else {"timesteps_total": int(2e8)}
+name = alg + "_" + model + "_" + dist + ("_single" if is_single else "_multi") + \
+        (("_" + str(env_id)) if is_single else "") + "_" + str(num_levels) + \
+        ("_genassets" if use_generated_assets else "")
 
+
+# TODO: use num_samples to run multiple experiments in parallell
 analysis = tune.run(
     alg_dict[alg],
-    name=alg,
+    name=name,
     checkpoint_freq=checkpoint_freq,
     checkpoint_at_end=checkpoint_at_end,
     max_failures=max_failures,  # will restart x times from last ceckpoint after crash

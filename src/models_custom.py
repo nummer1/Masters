@@ -12,7 +12,8 @@ from ray.rllib.utils.annotations import override
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import  Activation, Add, Attention, Concatenate, Conv2D, Dense, \
-        Flatten, Input, Lambda, Layer, LayerNormalization, LSTM, Multiply, Reshape, TimeDistributed
+        Flatten, Input, Lambda, Layer, LayerNormalization, LSTM, MaxPooling2D, Multiply, Reshape, \
+        TimeDistributed
 from tensorflow.keras import backend as K
 
 # import transformer
@@ -20,6 +21,7 @@ from tensorflow.keras import backend as K
 
 def preproc(inputs):
     inputs = tf.math.scalar_mul(1/255, inputs)
+    # inputs = tf.reshape(inputs, [None, 64, 64, 3])
     return inputs
 
 
@@ -65,18 +67,48 @@ class AdvancedAdd(Layer):
         return input_shape[0]
 
 
-def convNetwork(input_layer):
-    reshape = TimeDistributed(Reshape((64, 64, 3)))(input_layer)
+def res_block(input_layer, filters, name):
     conv1 = TimeDistributed(Conv2D(
-        filters=64, kernel_size=(8, 8), strides=(4, 4), name="conv1",
-        padding='same', data_format=None, dilation_rate=(1, 1), activation=tf.nn.relu))(reshape)
-    # maxpool1 = TimeDistributed(MaxPooling2D(
-        # pool_size=(2, 2), name="maxpool1", strides=None, padding='valid', data_format=None))(conv1)
+        filters=filters, kernel_size=(4, 4), strides=(1, 1), padding='same',
+        dilation_rate=(1, 1), activation=tf.nn.relu), name=name+"_conv1")(input_layer)
     conv2 = TimeDistributed(Conv2D(
-        filters=64, kernel_size=(4, 4), strides=(2, 2), name="conv2",
-        padding='same', data_format=None, dilation_rate=(1, 1), activation=tf.nn.relu))(conv1)
+        filters=filters, kernel_size=(4, 4), strides=(1, 1), padding='same',
+        dilation_rate=(1, 1), activation=tf.nn.relu), name=name+"_conv2")(conv1)
+    add = Add(name=name+"_add")([input_layer, conv2])
+    return add
 
-    flatten = TimeDistributed(Flatten(name="flatten"))(conv2) # data_format="channels_last" (default)
+
+def conv_block(input_layer, filters, name):
+    conv = TimeDistributed(Conv2D(
+        filters=filters, kernel_size=(4, 4), strides=(1, 1), padding='same',
+        dilation_rate=(1, 1), activation=tf.nn.relu), name=name+"_conv1")(input_layer)
+    max = TimeDistributed(MaxPooling2D(
+        pool_size=(2, 2), strides=(2, 2), padding='same'), name=name+"_pool")(conv)
+    res1 = res_block(max, filters, name+"_res1")
+    res2 = res_block(res1, filters, name+"_res2")
+    return res2
+
+
+def conv_network(input_layer):
+    # x3 conv_block with [16, 32, 32] filters
+    # TODO: fix activations being in correct place (after pool, after add in last block)
+    reshape = TimeDistributed(Reshape((64, 64, 3)), name="reshape")(input_layer)
+    block1 = conv_block(reshape, 16, "block1")
+    block2 = conv_block(block1, 32, "block2")
+    block3 = conv_block(block2, 32, "block3")
+    flatten = TimeDistributed(Flatten(), name="Flatten")(block3) # data_format="channels_last" (default)
+    return flatten
+
+
+def simple_conv_network(input_layer):
+    reshape = TimeDistributed(Reshape((64, 64, 3)), name="reshape")(input_layer)
+    conv1 = TimeDistributed(Conv2D(
+        filters=16, kernel_size=(8, 8), strides=(4, 4), padding='same',
+        dilation_rate=(1, 1), activation=tf.nn.relu), name="conv1")(reshape)
+    conv2 = TimeDistributed(Conv2D(
+        filters=32, kernel_size=(4, 4), strides=(2, 2), padding='same',
+        dilation_rate=(1, 1), activation=tf.nn.relu), name="conv2")(conv1)
+    flatten = TimeDistributed(Flatten(), name="flatten")(conv2) # data_format="channels_last" (default)
     return flatten
 
 
@@ -137,28 +169,26 @@ class TransformerCustomModel(RecurrentTFModelV2):
         self.cell_size = cell_size
 
         input_layer = Input(
-            shape=(None, 64 * 64 * 3), name="inputs")
+            shape=(None, 64 * 64 * 3), name="input")
         # seq_in = Input(shape=(), name="seq_in", dtype=tf.int32)
 
         # d_model & n_heads == 0
-        flatten = convNetwork(input_layer)
+        flatten = conv_network(input_layer)
         shorten = Dense(256, activation=tf.nn.relu, name="shorten")(flatten)
 
         # TODO: add positional encoding
         trans1 = transformer(shorten, d_model, n_heads)
         trans2 = transformer(trans1, d_model, n_heads)
 
-        logits = Dense(
-            15, activation=tf.keras.activations.linear, name="logits")(trans2)
-        values = Dense(
-            1, activation=None, name="values")(trans2)
+        logits = Dense(15, activation=tf.keras.activations.linear, name="logits")(trans2)
+        values = Dense(1, activation=None, name="values")(trans2)
 
         # Create the RNN model
         self.rnn_model = tf.keras.Model(
             inputs=[input_layer],
             outputs=[logits, values])
         self.register_variables(self.rnn_model.variables)
-        # self.rnn_model.summary()
+        self.rnn_model.summary()
 
         if plot_model:
             tf.keras.utils.plot_model(self.rnn_model, to_file='model_transformer.png', show_shapes=True)
@@ -191,16 +221,15 @@ class LSTMCustomModel(RecurrentTFModelV2):
         self.cell_size = cell_size
 
         input_layer = Input(
-            shape=(None, 64 * 64 * 3), name="inputs")
+            shape=(None, 64 * 64 * 3), name="input")
         state_in_h = Input(shape=(cell_size, ), name="h")
         state_in_c = Input(shape=(cell_size, ), name="c")
         seq_in = Input(shape=(), name="seq_in", dtype=tf.int32)
 
-        flatten = convNetwork(input_layer)
+        flatten = conv_network(input_layer)
 
         # Preprocess observation with a hidden layer and send to LSTM cell
-        dense1 = TimeDistributed(Dense(
-             256, activation=tf.nn.relu, name="dense1"))(flatten)
+        dense1 = Dense(256, activation=tf.nn.relu, name="dense1")(flatten)
 
         lstm_out, state_h, state_c = LSTM(
             cell_size, return_sequences=True, return_state=True, name="lstm")(
@@ -219,10 +248,68 @@ class LSTMCustomModel(RecurrentTFModelV2):
             inputs=[input_layer, seq_in, state_in_h, state_in_c],
             outputs=[logits, values, state_h, state_c])
         self.register_variables(self.rnn_model.variables)
-        # self.rnn_model.summary()
+        self.rnn_model.summary()
 
         if plot_model:
             tf.keras.utils.plot_model(self.rnn_model, to_file='model_lstm.png', show_shapes=True)
+
+    @override(RecurrentTFModelV2)
+    def forward_rnn(self, inputs, state, seq_lens):
+        inputs = preproc(inputs)
+        model_out, self._value_out, h, c = self.rnn_model([inputs, seq_lens] + state)
+        return model_out, [h, c]
+
+    @override(ModelV2)
+    def get_initial_state(self):
+        # Get the initial recurrent state values for the model
+        return [
+            np.zeros(self.cell_size, np.float32),
+            np.zeros(self.cell_size, np.float32),
+        ]
+
+    @override(ModelV2)
+    def value_function(self):
+        return tf.reshape(self._value_out, [-1])
+
+
+class SimpleCustomModel(RecurrentTFModelV2):
+    def __init__(self, obs_space, action_space, num_outputs, model_config, name,
+            cell_size=256, plot_model=False):
+        super(SimpleCustomModel, self).__init__(obs_space, action_space, num_outputs, model_config, name)
+        self.cell_size = cell_size
+
+        input_layer = Input(
+            shape=(None, 64 * 64 * 3), name="inputs")
+        state_in_h = Input(shape=(cell_size, ), name="h")
+        state_in_c = Input(shape=(cell_size, ), name="c")
+        seq_in = Input(shape=(), name="seq_in", dtype=tf.int32)
+
+        flatten = simple_conv_network(input_layer)
+
+        # Preprocess observation with a hidden layer and send to LSTM cell
+        dense1 = Dense(256, activation=tf.nn.relu, name="dense1")(flatten)
+
+        lstm_out, state_h, state_c = LSTM(
+            cell_size, return_sequences=True, return_state=True, name="lstm")(
+                inputs=dense1,
+                mask=tf.sequence_mask(seq_in),
+                initial_state=[state_in_h, state_in_c])
+
+        # Postprocess LSTM output with another hidden layer and compute values
+        logits = Dense(
+            15, activation=tf.keras.activations.linear, name="logits")(lstm_out)
+        values = Dense(
+            1, activation=None, name="values")(lstm_out)
+
+        # Create the RNN model
+        self.rnn_model = tf.keras.Model(
+            inputs=[input_layer, seq_in, state_in_h, state_in_c],
+            outputs=[logits, values, state_h, state_c])
+        self.register_variables(self.rnn_model.variables)
+        self.rnn_model.summary()
+
+        if plot_model:
+            tf.keras.utils.plot_model(self.rnn_model, to_file='model_simple.png', show_shapes=True)
 
     @override(RecurrentTFModelV2)
     def forward_rnn(self, inputs, state, seq_lens):

@@ -1,0 +1,15 @@
+impala lstm memory f 0 0 f
+ppo lstm memory f 0 0 f
+appo lstm memory f 0 0 f
+rainbow lstm memory f 0 0 f
+apex lstm memory f 0 0 f
+impala transformer memory f 0 0 f
+ppo transformer memory f 0 0 f
+appo transformer memory f 0 0 f
+rainbow transformer memory f 0 0 f
+apex transformer memory f 0 0 f
+
+impala simple easy f 0 0 f
+impala simple easy f 0 500 f
+impala lstm easy f 0 0 f
+impala lstm easy f 0 500 f

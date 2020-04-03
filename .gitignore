@@ -1,0 +1,10 @@
+out_*
+ray_results*
+tests/*
+py37-venv/
+src/__pycache__/
+
+todo_commands.txt
+install-venv.slurm
+packages.txt
+email.txt
