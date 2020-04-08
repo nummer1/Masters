@@ -24,8 +24,8 @@ use_generated_assets = True if sys.argv[7] == 't' else False
 if alg == "test":
     ray.init()
 else:
-    ray.init(memory=90*1024*1024*1024, object_store_memory=60*1024*1024*1024)
-        # driver_object_store_memory=1*1024*1024*1024)
+    ray.init(num_gpus=1, memory=25*1024*1024*1024, object_store_memory=60*1024*1024*1024)
+        # driver_object_store_memory=10*1024*1024*1024)
 
 ModelCatalog.register_custom_model("lstm_model", models_custom.LSTMCustomModel)
 ModelCatalog.register_custom_model("transformer_model", models_custom.TransformerCustomModel)
@@ -47,7 +47,7 @@ alg_dict = {
     'appo': "APPO",
     'rainbow': "DQN",
     'apex': "APEX",
-    'test': "IMPALA"
+    'test': "APEX"
 }
 
 conf = config_dict[alg]()
@@ -57,9 +57,12 @@ config.set_env(conf, is_single, env_id, num_levels, use_generated_assets, dist)
 
 checkpoint_freq = 10
 checkpoint_at_end = True
-max_failures = 100
-reuse_actors = True
-stop = {"training_iteration": 2} if alg == "test" else {"timesteps_total": int(2e8)}
+max_failures = 0  # TODO: increase this for memory environment
+reuse_actors = True  # TODO: setting to True might break
+stop = {"timesteps_total": int(2.5e7)} if dist == "easy" else {"timesteps_total": int(2e8)}
+if alg == "test":
+    stop = {"training_iteration": 2}
+
 name = alg + "_" + model + "_" + dist + ("_single" if is_single else "_multi") + \
         (("_" + str(env_id)) if is_single else "") + "_" + str(num_levels) + \
         ("_genassets" if use_generated_assets else "")

@@ -16,8 +16,6 @@ from tensorflow.keras.layers import  Activation, Add, Attention, Concatenate, Co
         TimeDistributed
 from tensorflow.keras import backend as K
 
-# import transformer
-
 
 def preproc(inputs):
     inputs = tf.math.scalar_mul(1/255, inputs)
@@ -68,12 +66,13 @@ class AdvancedAdd(Layer):
 
 
 def res_block(input_layer, filters, name):
+    relu = TimeDistributed(Activation('relu'), name=name+"_relu")(input_layer)
     conv1 = TimeDistributed(Conv2D(
         filters=filters, kernel_size=(4, 4), strides=(1, 1), padding='same',
-        dilation_rate=(1, 1), activation=tf.nn.relu), name=name+"_conv1")(input_layer)
+        dilation_rate=(1, 1), activation=tf.nn.relu), name=name+"_conv1")(relu)
     conv2 = TimeDistributed(Conv2D(
         filters=filters, kernel_size=(4, 4), strides=(1, 1), padding='same',
-        dilation_rate=(1, 1), activation=tf.nn.relu), name=name+"_conv2")(conv1)
+        dilation_rate=(1, 1), activation=tf.keras.activations.linear), name=name+"_conv2")(conv1)
     add = Add(name=name+"_add")([input_layer, conv2])
     return add
 
@@ -81,7 +80,7 @@ def res_block(input_layer, filters, name):
 def conv_block(input_layer, filters, name):
     conv = TimeDistributed(Conv2D(
         filters=filters, kernel_size=(4, 4), strides=(1, 1), padding='same',
-        dilation_rate=(1, 1), activation=tf.nn.relu), name=name+"_conv1")(input_layer)
+        dilation_rate=(1, 1), activation=tf.keras.activations.linear), name=name+"_conv1")(input_layer)
     max = TimeDistributed(MaxPooling2D(
         pool_size=(2, 2), strides=(2, 2), padding='same'), name=name+"_pool")(conv)
     res1 = res_block(max, filters, name+"_res1")
@@ -91,12 +90,12 @@ def conv_block(input_layer, filters, name):
 
 def conv_network(input_layer):
     # x3 conv_block with [16, 32, 32] filters
-    # TODO: fix activations being in correct place (after pool, after add in last block)
     reshape = TimeDistributed(Reshape((64, 64, 3)), name="reshape")(input_layer)
     block1 = conv_block(reshape, 16, "block1")
     block2 = conv_block(block1, 32, "block2")
     block3 = conv_block(block2, 32, "block3")
-    flatten = TimeDistributed(Flatten(), name="Flatten")(block3) # data_format="channels_last" (default)
+    relu = TimeDistributed(Activation('relu'), name='relu_out')(block3)
+    flatten = TimeDistributed(Flatten(), name="flatten")(relu) # data_format="channels_last" (default)
     return flatten
 
 
@@ -164,7 +163,7 @@ class TransformerCustomModel(RecurrentTFModelV2):
     """
 
     def __init__(self, obs_space, action_space, num_outputs, model_config, name,
-            cell_size=256, d_model=8, n_heads=8, plot_model=False):
+            cell_size=256, d_model=32, n_heads=8, plot_model=False):
         super(TransformerCustomModel, self).__init__(obs_space, action_space, num_outputs, model_config, name)
         self.cell_size = cell_size
 
@@ -172,16 +171,15 @@ class TransformerCustomModel(RecurrentTFModelV2):
             shape=(None, 64 * 64 * 3), name="input")
         # seq_in = Input(shape=(), name="seq_in", dtype=tf.int32)
 
-        # d_model & n_heads == 0
         flatten = conv_network(input_layer)
         shorten = Dense(256, activation=tf.nn.relu, name="shorten")(flatten)
 
-        # TODO: add positional encoding
+        # TODO: add propper positional encoding
         trans1 = transformer(shorten, d_model, n_heads)
-        trans2 = transformer(trans1, d_model, n_heads)
+        # trans2 = transformer(trans1, d_model, n_heads)
 
-        logits = Dense(15, activation=tf.keras.activations.linear, name="logits")(trans2)
-        values = Dense(1, activation=None, name="values")(trans2)
+        logits = Dense(15, activation=tf.keras.activations.linear, name="logits")(trans1)
+        values = Dense(1, activation=None, name="values")(trans1)
 
         # Create the RNN model
         self.rnn_model = tf.keras.Model(
@@ -341,10 +339,3 @@ class ProcgenPreprocessor(Preprocessor):
     def transform(self, observation):
         # observation is numpy array with shape [64, 64, 3]
         return observation
-
-
-# if __name__ == "__main__":
-#     import gym
-#     env = gym.make('GuessingGame-v0')
-#     print(env.observation_space)
-#     model = LSTMCustomModel(np.array([2, ]), env.action_space, 1, None, 'test')

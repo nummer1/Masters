@@ -1,8 +1,11 @@
 out_*
 ray_results*
-tests/*
+results/
+tests/
 py37-venv/
+test_env/
 src/__pycache__/
+src/keras_transformer_xl/
 
 todo_commands.txt
 install-venv.slurm

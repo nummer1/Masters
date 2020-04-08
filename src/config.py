@@ -110,23 +110,23 @@ def set_env(config, is_single, env_id, num_levels, use_generated_assets, dist):
         config["evaluation_config"] = {
             # set is_eval to true and keep everything else the same
             "env_config": env_config,
-            "num_envs_per_worker": 30,
+            "num_envs_per_worker": 12,
             "vtrace": False
         }
     else:
         config["evaluation_config"] = {
             # set is_eval to true and keep everything else the same
             "env_config": env_config,
-            "num_envs_per_worker": 30
+            "num_envs_per_worker": 12
         }
     # TODO set "explore": False for rainbow in evaluation_config
 
 
 def set_common_config(config):
     config["num_workers"] = 5  # one base worker is created in addition
-    config["num_envs_per_worker"] = 30  # must be a multiple of 6 if multi_task
-    config["rollout_fragment_length"] = 500
-    config["train_batch_size"] = 15000  # train_batch_size > num_envs_per_worker * rollout_fragment_length
+    config["num_envs_per_worker"] = 12  # must be a multiple of 6 if multi_task
+    config["sample_batch_size"] = 256
+    config["train_batch_size"] = 256*12  # train_batch_size > num_envs_per_worker * rollout_fragment_length
     # Whether to rollout "complete_episodes" or "truncate_episodes" to
     config["batch_mode"] = "truncate_episodes"
 
@@ -147,6 +147,9 @@ def set_common_config(config):
     }
 
     config["ignore_worker_failures"] = False
+    config["log_sys_usage"] = True
+    config["metrics_smoothing_episodes"] = 100
+    config["eager"] = False
 
 
 def set_dqn_config(config):
@@ -196,8 +199,8 @@ def set_apex_config(config):
 def set_rainbow_config(config):
     set_dqn_config(config)
     config["num_atoms"] = 51  # rainbow: "num_atoms": [more than 1]
-    config["v_min"] = -0.25  # expected returns should be between 0 and 1 since they're normalized
-    config["v_max"] = 1.0
+    config["v_min"] = 0  # expected returns should be between 0 and 1 since they're normalized
+    config["v_max"] = 20.0
     config["noisy"] = True  # rainbow: noisy = True
     config["sigma0"] = 0.5  # control the initial value of noisy nets
     config["dueling"] = True
@@ -231,7 +234,7 @@ def set_ppo_config(config):
     config["kl_coeff"] = 0.5  # Initial coefficient for KL divergence.
     config["kl_target"] = 0.01 # Target value for KL divergence.
 
-    config["sgd_minibatch_size"] = 100
+    config["sgd_minibatch_size"] = 8
     config["shuffle_sequences"] = True  # Whether to shuffle sequences in the batch when training (recommended).
     config["num_sgd_iter"] = 30
 
@@ -255,9 +258,13 @@ def set_impala_config(config):
     config["num_data_loader_buffers"] = 1  # larger number goes faster but uses more GPU memory
     config["minibatch_buffer_size"] = 1  # number of train batches to  retain for minibatching, only effect if num_sgd_iter > 1
     config["num_sgd_iter"] = 3  # number of passes over each train batch
-    config["replay_proportion"] = 0.8  # set to > 0 to use replay buffer
-    config["replay_buffer_num_slots"] = 30000  # number of sample batches to store for replay
+    config["replay_proportion"] = 0  # set to > 0 to use replay buffer
+    config["replay_buffer_num_slots"] = 0  # 30000  # number of sample batches to store for replay
+    # TODO: might crash if learner_queue_size is not 1
     config["learner_queue_size"] = 10  # training batches in queue to learner
+    config["learner_queue_timeout"] = 600
+    config["max_sample_requests_in_flight_per_worker"] = 2
+    config["broadcast_interval"] = 1  # max number of workers to broadcast one set of weights to
 
     # Learning params.
     config["grad_clip"] = 40.0
@@ -327,27 +334,39 @@ def get_config_impala():
 
 def get_simple_test_config():
     # used to check for bugs
-    config = get_config_impala()
+    config = get_config_apex()
 
     # config["preprocessor_pref"] = None  # Does nothing
     # config["model"]["max_seq_len"] = 20
 
     config["num_workers"] = 1
     config["num_envs_per_worker"] = 6
-    config["rollout_fragment_length"] = 500
-    config["train_batch_size"] = 6*500
+    # config["sample_batch_size"] = 256
+    config["train_batch_size"] = 6*256
     config["num_gpus"] = 0
     config["evaluation_config"]["num_envs_per_worker"] = 6
-    config["batch_mode"] = "truncate_episodes"
-    config["minibatch_buffer_size"] = 1  # number of train batches to  retain for minibatching, only effect if num_sgd_iter > 1
-    config["num_sgd_iter"] = 6
+    # config["batch_mode"] = "truncate_episodes"
+    # config["minibatch_buffer_size"] = 1  # number of train batches to retain for minibatching, only effect if num_sgd_iter > 1
+    # config["num_sgd_iter"] = 3
 
-    config["num_data_loader_buffers"] = 1  # larger number goes faster but uses more GPU memory
-    config["minibatch_buffer_size"] = 1  # number of train batches to  retain for minibatching, only effect if num_sgd_iter > 1
-    config["num_sgd_iter"] = 1  # number of passes over each train batch
-    config["replay_proportion"] = 0.5  # set to > 0 to use replay buffer
-    config["replay_buffer_num_slots"] = 6*500  # number of sample batches to store for replay
-    config["learner_queue_size"] = 1  # training batches in queue to learner
+    # config["num_data_loader_buffers"] = 2  # larger number goes faster but uses more GPU memory
+    # config["minibatch_buffer_size"] = 1  # number of train batches to  retain for minibatching, only effect if num_sgd_iter > 1
+    # config["num_sgd_iter"] = 1  # number of passes over each train batch
+    # config["replay_proportion"] = 0.5  # set to > 0 to use replay buffer
+    # config["replay_buffer_num_slots"] = 6*500  # number of sample batches to store for replay
+    # config["learner_queue_size"] = 1  # training batches in queue to learner
+
+    # config["num_atoms"] = 51  # rainbow: "num_atoms": [more than 1]
+    # config["v_min"] = 0  # expected returns should be between 0 and 1 since they're normalized
+    # config["v_max"] = 20.0
+    # config["noisy"] = True  # rainbow: noisy = True
+    # config["sigma0"] = 0.5  # control the initial value of noisy nets
+    # config["dueling"] = True
+    # config["double_q"] = True
+    # # Postprocess model outputs with these hidden layers to compute the
+    # # state and action values. See also the model config in catalog.py.
+    # config["hiddens"] = [256]
+    # config["n_step"] = 3  # rainbow: "n_step": [between 1 and 10]
 
     config["eager"] = False
     config["log_level"] = "INFO"
