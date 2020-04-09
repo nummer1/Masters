@@ -334,7 +334,7 @@ def get_config_impala():
 
 def get_simple_test_config():
     # used to check for bugs
-    config = get_config_apex()
+    config = get_config_impala()
 
     # config["preprocessor_pref"] = None  # Does nothing
     # config["model"]["max_seq_len"] = 20
@@ -345,16 +345,16 @@ def get_simple_test_config():
     config["train_batch_size"] = 6*256
     config["num_gpus"] = 0
     config["evaluation_config"]["num_envs_per_worker"] = 6
-    # config["batch_mode"] = "truncate_episodes"
-    # config["minibatch_buffer_size"] = 1  # number of train batches to retain for minibatching, only effect if num_sgd_iter > 1
-    # config["num_sgd_iter"] = 3
+    config["batch_mode"] = "truncate_episodes"
+    config["minibatch_buffer_size"] = 1  # number of train batches to retain for minibatching, only effect if num_sgd_iter > 1
+    config["num_sgd_iter"] = 3
 
-    # config["num_data_loader_buffers"] = 2  # larger number goes faster but uses more GPU memory
-    # config["minibatch_buffer_size"] = 1  # number of train batches to  retain for minibatching, only effect if num_sgd_iter > 1
-    # config["num_sgd_iter"] = 1  # number of passes over each train batch
-    # config["replay_proportion"] = 0.5  # set to > 0 to use replay buffer
-    # config["replay_buffer_num_slots"] = 6*500  # number of sample batches to store for replay
-    # config["learner_queue_size"] = 1  # training batches in queue to learner
+    config["num_data_loader_buffers"] = 2  # larger number goes faster but uses more GPU memory
+    config["minibatch_buffer_size"] = 1  # number of train batches to  retain for minibatching, only effect if num_sgd_iter > 1
+    config["num_sgd_iter"] = 1  # number of passes over each train batch
+    config["replay_proportion"] = 0.5  # set to > 0 to use replay buffer
+    config["replay_buffer_num_slots"] = 6*500  # number of sample batches to store for replay
+    config["learner_queue_size"] = 1  # training batches in queue to learner
 
     # config["num_atoms"] = 51  # rainbow: "num_atoms": [more than 1]
     # config["v_min"] = 0  # expected returns should be between 0 and 1 since they're normalized

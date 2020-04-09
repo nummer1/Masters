@@ -74,6 +74,12 @@ def set_seeds(env_config):
     return num_levels, start_level
 
 
+# TODO
+def guessing(env_config):
+    env = gym.make("GuessingGame-v0")
+    return env
+
+
 def multi_task(env_config):
     num_levels, start_level = set_seeds(env_config)
     env_id = env_config.vector_index % 6

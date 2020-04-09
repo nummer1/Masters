@@ -2,8 +2,6 @@ import gym
 import ray
 import sys
 
-from ray.rllib.agents import impala
-from ray.rllib.agents import ppo
 from ray.rllib.models import ModelCatalog
 from ray import tune
 
@@ -30,7 +28,7 @@ else:
 ModelCatalog.register_custom_model("lstm_model", models_custom.LSTMCustomModel)
 ModelCatalog.register_custom_model("transformer_model", models_custom.TransformerCustomModel)
 ModelCatalog.register_custom_model("simple_model", models_custom.SimpleCustomModel)
-ModelCatalog.register_custom_preprocessor("procgen_preproc", models_custom.ProcgenPreprocessor)
+# ModelCatalog.register_custom_preprocessor("procgen_preproc", models_custom.ProcgenPreprocessor)
 
 config_dict = {
     'impala': config.get_config_impala,
@@ -47,7 +45,7 @@ alg_dict = {
     'appo': "APPO",
     'rainbow': "DQN",
     'apex': "APEX",
-    'test': "APEX"
+    'test': "IMPALA"
 }
 
 conf = config_dict[alg]()
@@ -57,7 +55,7 @@ config.set_env(conf, is_single, env_id, num_levels, use_generated_assets, dist)
 
 checkpoint_freq = 10
 checkpoint_at_end = True
-max_failures = 0  # TODO: increase this for memory environment
+max_failures = 10  # TODO: increase this for memory environment
 reuse_actors = True  # TODO: setting to True might break
 stop = {"timesteps_total": int(2.5e7)} if dist == "easy" else {"timesteps_total": int(2e8)}
 if alg == "test":

@@ -15,3 +15,10 @@ impala lstm easy f 0 0 f
 impala lstm easy f 0 500 f
 impala transformer easy f 0 0 f
 impala transformer easy f 0 500 f
+
+impala lstm easy t 0 500 f
+impala lstm easy t 1 500 f
+impala lstm easy t 2 500 f
+impala lstm easy t 3 500 f
+impala lstm easy t 4 500 f
+impala lstm easy t 5 500 f

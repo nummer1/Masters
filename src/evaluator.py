@@ -1,61 +1,54 @@
-import ray
-import ray.rllib.agents.impala as impala
+import subprocess
+import glob
+import matplotlib.pyplot as plt
+
 from ray.rllib.models import ModelCatalog
-import tensorflow as tf
-import numpy as np
-import gym
+from ray import tune
 
+import environments
 import config
-import model_custom
+import models_custom
 
 
-# TODO: use: rllib rollout --help
-
-# TODO: make modular and get trainers from trainer.py
-ray.init()
-ModelCatalog.register_custom_model("lstm_model", lstm_model.LSTMCustomModel)
+ModelCatalog.register_custom_model("lstm_model", models_custom.LSTMCustomModel)
 ModelCatalog.register_custom_model("transformer_model", models_custom.TransformerCustomModel)
-ModelCatalog.register_custom_preprocessor("procgen_preproc", models_custom.ProcgenPreprocessor)
-config = config.get_config_impala()
+ModelCatalog.register_custom_model("simple_model", models_custom.SimpleCustomModel)
 
-trainer = impala.ImpalaAgent(config=config, env="GuessingGame-v0")
-trainer.restore("/home/kasparov/ray_results/IMPALA_GuessingGame-v0_2019-11-14_16-52-21j8tihlrj/checkpoint_10/checkpoint-10")
-policy = trainer.get_policy()
 
-# print(type(policy))
-# print(type(policy.model))
-# print(dir(policy))
-# print(dir(policy.model))
-# print(policy.model.last_layer)
+"""python rollout.py ~/Documents/Masters/results/ray_results_B_1/impala_simple_easy_multi_0/IMPALA_multi_task_0_2020-04-08_15-17-12up4fmd11/checkpoint_737/checkpoint-737 --run IMPALA --env procgen:procgen-caveflyer-v0 --episodes 100"""
 
-env = gym.make('GuessingGame-v0')
 
-PRINT_SA = True
-for i in range(20):
-    ob = env.reset()
-    cum_reward = 0
-    discount = config["gamma"]
-    # rnn_state is decided by rnn network size
-    rnn_size = config["model"]["lstm_cell_size"]
-    rnn_size = 8
-    rnn_state = state=[[0 for i in range(rnn_size)], [0 for i in range(rnn_size)]]
+directory_name = "ray_results_B_1/impala_simple_easy_multi_0/IMPALA_multi_task_0_2020-04-08_15-17-12up4fmd11/"
+directory_name = "/home/kasparov/Documents/Masters/results/" + directory_name
 
-    while True:
-        action, rnn_state, logits_dictionary = trainer.compute_action(ob, state=rnn_state, prev_action=None, prev_reward=None, full_fetch=False)
-        ob, reward, done, info = env.step(action)
-        cum_reward += (reward * discount)
-        discount *= discount
+checkpoint_list = glob.glob(directory_name + "checkpoint*")
+checkpoint_list = sorted(checkpoint_list, key=lambda x: int(x.split("_")[-1]))
+for i, c in enumerate(checkpoint_list):
+    checkpoint_list[i] += "/checkpoint-" + str(c.split("/")[-1].split("_")[-1])
 
-        if PRINT_SA:
-            print("action:", action)
-            try:
-                env.render(mode='human')
-            except NotImplementedError as e:
-                print(ob)
+env_list = ["procgen:procgen-caveflyer-v0", "procgen:procgen-dodgeball-v0", "procgen:procgen-miner-v0",
+        "procgen:procgen-jumper-v0", "procgen:procgen-maze-v0", "procgen:procgen-heist-v0"]
 
-        if done:
-            break
+for i, env in enumerate(env_list):
+    reward_list = []
+    for checkpoint in checkpoint_list:
+        result = subprocess.run(["python", "rollout.py", checkpoint,
+                "--run", "IMPALA", "--env", env, "--episodes", "100", "--no-render"],
+                stdout=subprocess.PIPE)
 
-    # print("final action:", action)
-    # print("final observation:", ob)
-    print("cumulative reward:", cum_reward)
+        result = result.stdout.decode("utf-8")
+        result = result.split('\n')
+        reward = 0
+        for line in result:
+            line = line.split()
+            if len(line) > 0 and line[0] == "Episode":
+                reward += float(line[3])
+        reward /= 100
+        reward_list.append(reward)
+
+    plt.figure(i + 1)
+    plt.ylabel('reward')
+    plt.xlabel('iterations (10)')
+    plt.plot([j for j in range(reward_list)], reward_list)
+
+plt.show()
