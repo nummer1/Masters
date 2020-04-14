@@ -1,24 +1,33 @@
-impala lstm memory f 0 500 f
-ppo lstm memory f 0 500 f
-appo lstm memory f 0 500 f
-rainbow lstm memory f 0 500 f
-apex lstm memory f 0 500 f
-impala transformer memory f 0 500 f
-ppo transformer memory f 0 500 f
-appo transformer memory f 0 500 f
-rainbow transformer memory f 0 500 f
-apex transformer memory f 0 500 f
+impala lstm memory f 0 500 f f
+ppo lstm memory f 0 500 f f
+appo lstm memory f 0 500 f f
+rainbow lstm memory f 0 500 f f
+apex lstm memory f 0 500 f f
+impala transformer memory f 0 500 f f
+ppo transformer memory f 0 500 f f
+appo transformer memory f 0 500 f f
+rainbow transformer memory f 0 500 f f
+apex transformer memory f 0 500 f f
 
-impala simple easy f 0 0 f
-impala simple easy f 0 500 f
-impala lstm easy f 0 0 f
-impala lstm easy f 0 500 f
-impala transformer easy f 0 0 f
-impala transformer easy f 0 500 f
+impala simple easy f 0 0 f f
+impala simple easy f 0 500 f f
+impala lstm easy f 0 0 f f
+impala lstm easy f 0 500 f f
+impala transformer easy f 0 0 f f
+impala transformer easy f 0 500 f f
 
-impala lstm easy t 0 500 f
-impala lstm easy t 1 500 f
-impala lstm easy t 2 500 f
-impala lstm easy t 3 500 f
-impala lstm easy t 4 500 f
-impala lstm easy t 5 500 f
+impala lstm easy t 0 500 f f
+impala lstm easy t 1 500 f f
+impala lstm easy t 2 500 f f
+impala lstm easy t 3 500 f f
+impala lstm easy t 4 500 f f
+impala lstm easy t 5 500 f f
+
+impala dense easy t 7 500 f f
+impala dense easy t 7 500 f t
+impala dense easy t 7 500 t t
+appo dense easy t 7 500 f f
+appo dense easy t 7 500 f t
+appo dense easy t 7 500 t t
+ppo dense easy t 7 500 f f
+ppo dense easy t 7 500 t f

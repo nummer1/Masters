@@ -250,7 +250,7 @@ def set_ppo_config(config):
     config["batch_mode"] = "truncate_episodes"
 
 
-def set_impala_config(config):
+def set_impala_config(config, buffer):
     config["vtrace"] = True
     config["vtrace_clip_rho_threshold"] = 1.0
     config["vtrace_clip_pg_rho_threshold"] = 1.0
@@ -258,8 +258,12 @@ def set_impala_config(config):
     config["num_data_loader_buffers"] = 1  # larger number goes faster but uses more GPU memory
     config["minibatch_buffer_size"] = 1  # number of train batches to  retain for minibatching, only effect if num_sgd_iter > 1
     config["num_sgd_iter"] = 3  # number of passes over each train batch
-    config["replay_proportion"] = 0  # set to > 0 to use replay buffer
-    config["replay_buffer_num_slots"] = 0  # 30000  # number of sample batches to store for replay
+    if buffer:
+        config["replay_proportion"] = 0.8  # set to > 0 to use replay buffer
+        config["replay_buffer_num_slots"] = 30000  # number of sample batches to store for replay
+    else:
+        config["replay_proportion"] = 0  # set to > 0 to use replay buffer
+        config["replay_buffer_num_slots"] = 0  # number of sample batches to store for replay
     # TODO: might crash if learner_queue_size is not 1
     config["learner_queue_size"] = 10  # training batches in queue to learner
     config["learner_queue_timeout"] = 600
@@ -282,8 +286,8 @@ def set_impala_config(config):
     config["entropy_coeff_schedule"] = None
 
 
-def set_appo_config(config):
-    set_impala_config(config)
+def set_appo_config(config, buffer):
+    set_impala_config(config, buffer)
     config["vtrace"] = True  # v-trace of GAE advantages
 
     # only used if v_trace is False
@@ -297,44 +301,44 @@ def set_appo_config(config):
     config["kl_target"] = 0.01
 
 
-def get_config_apex():
+def get_config_apex(buffer):
     config = apex.APEX_DEFAULT_CONFIG.copy()
     set_common_config(config)
     set_apex_config(config)
     return config
 
 
-def get_config_rainbow():
+def get_config_rainbow(buffer):
     config = dqn.DEFAULT_CONFIG.copy()
     set_common_config(config)
     set_rainbow_config(config)
     return config
 
 
-def get_config_appo():
+def get_config_appo(buffer):
     config = impala.DEFAULT_CONFIG.copy()
     set_common_config(config)
-    set_appo_config(config)
+    set_appo_config(config, buffer)
     return config
 
 
-def get_config_ppo():
+def get_config_ppo(buffer):
     config = ppo.DEFAULT_CONFIG.copy()
     set_common_config(config)
     set_ppo_config(config)
     return config
 
 
-def get_config_impala():
+def get_config_impala(buffer):
     config = impala.DEFAULT_CONFIG.copy()
     set_common_config(config)
-    set_impala_config(config)
+    set_impala_config(config, buffer)
     return config
 
 
-def get_simple_test_config():
+def get_simple_test_config(buffer):
     # used to check for bugs
-    config = get_config_impala()
+    config = get_config_impala(buffer)
 
     # config["preprocessor_pref"] = None  # Does nothing
     # config["model"]["max_seq_len"] = 20

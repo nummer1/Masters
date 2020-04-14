@@ -328,6 +328,57 @@ class SimpleCustomModel(RecurrentTFModelV2):
         return tf.reshape(self._value_out, [-1])
 
 
+class DenseCustomModel(RecurrentTFModelV2):
+    def __init__(self, obs_space, action_space, num_outputs, model_config, name,
+            cell_size=256, plot_model=False):
+        super(DenseCustomModel, self).__init__(obs_space, action_space, num_outputs, model_config, name)
+        self.cell_size = cell_size
+
+        input_layer = Input(
+            shape=(None, 64 * 64 * 3), name="input")
+
+        flatten = conv_network(input_layer)
+
+        # Preprocess observation with a hidden layer and send to LSTM cell
+        dense1 = TimeDistributed(Dense(256, activation=tf.nn.relu), name="dense1")(flatten)
+
+        # Postprocess LSTM output with another hidden layer and compute values
+        logits = TimeDistributed(Dense(
+            15, activation=tf.keras.activations.linear), name="logits")(dense1)
+        values = TimeDistributed(Dense(
+            1, activation=None), name="values")(dense1)
+
+        # Create the model
+        self.rnn_model = tf.keras.Model(
+            inputs=[input_layer],
+            outputs=[logits, values])
+        self.register_variables(self.rnn_model.variables)
+        self.rnn_model.summary()
+
+        if plot_model:
+            tf.keras.utils.plot_model(self.rnn_model, to_file='model_dense.png', show_shapes=True)
+
+    @override(RecurrentTFModelV2)
+    def forward_rnn(self, inputs, state, seq_lens):
+        inputs = preproc(inputs)
+        # model_out, self._value_out = self.rnn_model([inputs, seq_lens])
+        model_out, self._value_out = self.rnn_model([inputs])
+        # return output and new states
+        return model_out, state
+
+    @override(ModelV2)
+    def get_initial_state(self):
+        # initial hidden state in model
+        return [
+            np.zeros(self.cell_size, np.float32),
+            np.zeros(self.cell_size, np.float32),
+        ]
+
+    @override(ModelV2)
+    def value_function(self):
+        return tf.reshape(self._value_out, [-1])
+
+
 class ProcgenPreprocessor(Preprocessor):
     """
     Custom preprocessor is depreaceated by rllib, not in use

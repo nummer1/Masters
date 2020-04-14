@@ -17,6 +17,7 @@ is_single = True if sys.argv[4] == 't' else False
 env_id = int(sys.argv[5])
 num_levels = int(sys.argv[6])
 use_generated_assets = True if sys.argv[7] == 't' else False
+buffer = True if sys.argv[8] == 't' else False
 
 # memory is total amount of memory available
 if alg == "test":
@@ -28,6 +29,7 @@ else:
 ModelCatalog.register_custom_model("lstm_model", models_custom.LSTMCustomModel)
 ModelCatalog.register_custom_model("transformer_model", models_custom.TransformerCustomModel)
 ModelCatalog.register_custom_model("simple_model", models_custom.SimpleCustomModel)
+ModelCatalog.register_custom_model("dense_model", models_custom.DenseCustomModel)
 # ModelCatalog.register_custom_preprocessor("procgen_preproc", models_custom.ProcgenPreprocessor)
 
 config_dict = {
@@ -48,7 +50,7 @@ alg_dict = {
     'test': "IMPALA"
 }
 
-conf = config_dict[alg]()
+conf = config_dict[alg](buffer)
 config.set_model(conf, model)
 config.set_env(conf, is_single, env_id, num_levels, use_generated_assets, dist)
 

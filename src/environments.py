@@ -95,7 +95,10 @@ def single_task(env_config):
     # train on one environment
     num_levels, start_level = set_seeds(env_config)
     env_id = env_config["env_id"]
-    name = env_list[env_id]
+    if env_id == 7:
+        name = "procgen:procgen-coinrun-v0"
+    else:
+        name = env_list[env_id]
 
     env = gym.make(name, num_levels=num_levels, start_level=start_level,
                 use_generated_assets=env_config["use_generated_assets"],

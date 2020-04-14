@@ -10,6 +10,10 @@ with open("experiments.txt", "r") as experiments:
         name = [line[0], line[1], line[2], "singletask" if line[3] == 't' else "multitask", line[5]]
         if line[3] == 't':
             name.append(line[4])
+        if line[6] == 't':
+            name.append("genratetextures")
+        if line[7] == 't':
+            name.append("buffer")
         job_name = '_'.join(name)
         output = job_name + "_srun.out"
         run = ' '.join(line)
