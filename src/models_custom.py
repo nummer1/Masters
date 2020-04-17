@@ -1,6 +1,3 @@
-# TODO: build_tf_policy` and `build_torch_policy'
-
-
 from ray.rllib.models.preprocessors import get_preprocessor
 from ray.rllib.models import ModelCatalog
 from ray.rllib.models.preprocessors import Preprocessor
@@ -152,7 +149,7 @@ def transformer(input_layer, d_model, n_heads):
     norm2 = LayerNormalization(axis=-1, scale=False, trainable=True)(gate1)
     pmlp = Dense(input_layer.shape[-1])(norm2)
     gate2 = gate(gate1, pmlp)
-    # TODO: setting bias greater than 0 can greatly improve learning speed (according to paper)
+    # NOTE: setting bias greater than 0 can greatly improve learning speed (according to paper)
 
     return gate2
 
@@ -174,7 +171,7 @@ class TransformerCustomModel(RecurrentTFModelV2):
         flatten = conv_network(input_layer)
         shorten = Dense(256, activation=tf.nn.relu, name="shorten")(flatten)
 
-        # TODO: add propper positional encoding
+        # NOTE: add propper positional encoding
         trans1 = transformer(shorten, d_model, n_heads)
         # trans2 = transformer(trans1, d_model, n_heads)
 

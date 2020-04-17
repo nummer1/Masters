@@ -236,7 +236,7 @@ def set_ppo_config(config):
 
     config["sgd_minibatch_size"] = 8
     config["shuffle_sequences"] = True  # Whether to shuffle sequences in the batch when training (recommended).
-    config["num_sgd_iter"] = 30
+    config["num_sgd_iter"] = 3
 
     config["vf_share_layers"] = True
     config["vf_loss_coeff"] = 0.5  # IMPORTANT: you must tune this if vf_share_layers = True
@@ -258,12 +258,14 @@ def set_impala_config(config, buffer):
     config["num_data_loader_buffers"] = 1  # larger number goes faster but uses more GPU memory
     config["minibatch_buffer_size"] = 1  # number of train batches to  retain for minibatching, only effect if num_sgd_iter > 1
     config["num_sgd_iter"] = 3  # number of passes over each train batch
+
     if buffer:
         config["replay_proportion"] = 0.8  # set to > 0 to use replay buffer
         config["replay_buffer_num_slots"] = 30000  # number of sample batches to store for replay
     else:
         config["replay_proportion"] = 0  # set to > 0 to use replay buffer
         config["replay_buffer_num_slots"] = 0  # number of sample batches to store for replay
+
     # TODO: might crash if learner_queue_size is not 1
     config["learner_queue_size"] = 10  # training batches in queue to learner
     config["learner_queue_timeout"] = 600
