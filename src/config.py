@@ -123,18 +123,18 @@ def set_env(config, is_single, env_id, num_levels, use_generated_assets, dist):
 
 
 def set_common_config(config):
-    config["num_workers"] = 5  # one base worker is created in addition
-    config["num_envs_per_worker"] = 12  # must be a multiple of 6 if multi_task
-    config["sample_batch_size"] = 256
-    config["train_batch_size"] = 256*12  # train_batch_size > num_envs_per_worker * rollout_fragment_length
-    # Whether to rollout "complete_episodes" or "truncate_episodes" to
-    config["batch_mode"] = "truncate_episodes"
-
-    # can be fraction
-    config["num_gpus"] = 1
-
-    config["gamma"] = 0.999
-    config["lr"] = 5e-4
+    # config["num_workers"] = 5  # one base worker is created in addition
+    # config["num_envs_per_worker"] = 12  # must be a multiple of 6 if multi_task
+    # config["sample_batch_size"] = 256
+    # config["train_batch_size"] = 256*12  # train_batch_size > num_envs_per_worker * rollout_fragment_length
+    # # Whether to rollout "complete_episodes" or "truncate_episodes" to
+    # config["batch_mode"] = "truncate_episodes"
+    #
+    # # can be fraction
+    # config["num_gpus"] = 1
+    #
+    # config["gamma"] = 0.999
+    # config["lr"] = 5e-4
 
     config["log_level"] = "INFO"
     config["callbacks"] = {
@@ -146,10 +146,12 @@ def set_common_config(config):
         "on_postprocess_traj": on_postprocess_traj,
     }
 
-    config["ignore_worker_failures"] = False
-    config["log_sys_usage"] = True
-    config["metrics_smoothing_episodes"] = 100
-    config["eager"] = False
+    config["explore"] = False
+
+    # config["ignore_worker_failures"] = False
+    # config["log_sys_usage"] = True
+    # config["metrics_smoothing_episodes"] = 100
+    # config["eager"] = False
 
 
 def set_dqn_config(config):
@@ -184,16 +186,41 @@ def set_dqn_config(config):
 
 
 def set_apex_config(config):
-    set_dqn_config(config)
-    config["optimizer"]["max_weight_sync_delay"] = 400
-    config["optimizer"]["num_replay_buffer_shards"] = 4
-    config["optimizer"]["debug"] = False
+    # set_dqn_config(config)
+    # config["optimizer"]["max_weight_sync_delay"] = 400
+    # config["optimizer"]["num_replay_buffer_shards"] = 4
+    # config["optimizer"]["debug"] = False
+    #
+    # config["n_step"] = 3
+    # config["buffer_size"] = 2000000
+    # config["exploration_config"] = {"type": "PerWorkerEpsilonGreedy"}
+    # config["worker_side_prioritization"] = True
+    # config["min_iter_time_s"] = 10
 
+    config["double_q"] = False
+    config["dueling"] = False
+    config["num_atoms"] = 1
+    config["noisy"] = False
     config["n_step"] = 3
-    config["buffer_size"] = 2000000
-    config["exploration_config"] = {"type": "PerWorkerEpsilonGreedy"}
-    config["worker_side_prioritization"] = True
-    config["min_iter_time_s"] = 10
+    config["lr"] = .0001
+    config["adam_epsilon"] = .00015
+    config["hiddens"] = [512]
+    config["buffer_size"] = 1000000
+    config["exploration_config"]["final_epsilon"] = 0.01
+    config["exploration_config"]["epsilon_timesteps"] = 200000
+    config["prioritized_replay_alpha"] = 0.5
+    config["final_prioritized_replay_beta"] = 1.0
+    config["prioritized_replay_beta_annealing_timesteps"] = 2000000
+
+    config["num_gpus"] = 1
+
+    # APEX
+    config["num_workers"] = 8
+    config["num_envs_per_worker"] = 8
+    config["rollout_fragment_length"] = 20
+    config["train_batch_size"] = 512
+    config["target_network_update_freq"] = 50000
+    config["timesteps_per_iteration"] = 25000
 
 
 def set_rainbow_config(config):
@@ -228,79 +255,107 @@ def set_rainbow_config(config):
 
 
 def set_ppo_config(config):
-    config["use_critic"] = True  # required for GAE, use critic as baseline
-    config["use_gae"] = True
-    config["lambda"] = 0.95  # The GAE(lambda) parameter.
-    config["kl_coeff"] = 0.5  # Initial coefficient for KL divergence.
-    config["kl_target"] = 0.01 # Target value for KL divergence.
+    # config["use_critic"] = True  # required for GAE, use critic as baseline
+    # config["use_gae"] = True
+    # config["lambda"] = 0.95  # The GAE(lambda) parameter.
+    # config["kl_coeff"] = 0.5  # Initial coefficient for KL divergence.
+    # config["kl_target"] = 0.01 # Target value for KL divergence.
+    #
+    # config["sgd_minibatch_size"] = 8
+    # config["shuffle_sequences"] = True  # Whether to shuffle sequences in the batch when training (recommended).
+    # config["num_sgd_iter"] = 3
+    #
+    # config["vf_share_layers"] = True
+    # config["vf_loss_coeff"] = 0.5  # IMPORTANT: you must tune this if vf_share_layers = True
+    # config["entropy_coeff"] = 0.01
+    # config["entropy_coeff_schedule"] = None
+    # config["clip_param"] = 0.2
+    #
+    # config["vf_clip_param"] = 10.0  # Sensitive to the scale of the rewards. If your expected V is large, increase this.
+    # config["grad_clip"] = None  # If specified, clip the global norm of gradients by this amount.
+    #
+    # config["batch_mode"] = "truncate_episodes"
 
-    config["sgd_minibatch_size"] = 8
-    config["shuffle_sequences"] = True  # Whether to shuffle sequences in the batch when training (recommended).
-    config["num_sgd_iter"] = 3
-
-    config["vf_share_layers"] = True
-    config["vf_loss_coeff"] = 0.5  # IMPORTANT: you must tune this if vf_share_layers = True
+    config["lambda"] = 0.95
+    config["kl_coeff"] = 0.5
+    config["clip_rewards"] = True
+    config["clip_param"] = 0.1
+    config["vf_clip_param"] = 10.0
     config["entropy_coeff"] = 0.01
-    config["entropy_coeff_schedule"] = None
-    config["clip_param"] = 0.2
-
-    config["vf_clip_param"] = 10.0  # Sensitive to the scale of the rewards. If your expected V is large, increase this.
-    config["grad_clip"] = None  # If specified, clip the global norm of gradients by this amount.
-
+    config["train_batch_size"] = 5000
+    config["rollout_fragment_length"] = 100
+    config["sgd_minibatch_size"] = 500
+    config["num_sgd_iter"] = 10
+    config["num_workers"] = 7
+    config["num_envs_per_worker"] = 12
     config["batch_mode"] = "truncate_episodes"
+    # config["observation_filter"] = "NoFilter"
+    config["vf_share_layers"] = True
+    config["num_gpus"] = 1
 
 
 def set_impala_config(config, buffer):
-    config["vtrace"] = True
-    config["vtrace_clip_rho_threshold"] = 1.0
-    config["vtrace_clip_pg_rho_threshold"] = 1.0
+    # config["vtrace"] = True
+    # config["vtrace_clip_rho_threshold"] = 1.0
+    # config["vtrace_clip_pg_rho_threshold"] = 1.0
+    #
+    # config["num_data_loader_buffers"] = 1  # larger number goes faster but uses more GPU memory
+    # config["minibatch_buffer_size"] = 1  # number of train batches to  retain for minibatching, only effect if num_sgd_iter > 1
+    # config["num_sgd_iter"] = 3  # number of passes over each train batch
+    #
+    # if buffer:
+    #     config["replay_proportion"] = 0.8  # set to > 0 to use replay buffer
+    #     config["replay_buffer_num_slots"] = 30000  # number of sample batches to store for replay
+    # else:
+    #     config["replay_proportion"] = 0  # set to > 0 to use replay buffer
+    #     config["replay_buffer_num_slots"] = 0  # number of sample batches to store for replay
+    #
+    # # TODO: might crash if learner_queue_size is not 1
+    # config["learner_queue_size"] = 10  # training batches in queue to learner
+    # config["learner_queue_timeout"] = 600
+    # config["max_sample_requests_in_flight_per_worker"] = 2
+    # config["broadcast_interval"] = 1  # max number of workers to broadcast one set of weights to
+    #
+    # # Learning params.
+    # config["grad_clip"] = 40.0
+    # # either "adam" or "rmsprop"
+    # config["opt_type"] = "adam"
+    #
+    # # only used if rmsprop
+    # config["decay"] = 0.99
+    # config["momentum"] = 0.0
+    # config["epsilon"] = 0.1
+    #
+    # # balancing the three losses
+    # config["vf_loss_coeff"] = 0.5
+    # config["entropy_coeff"] = 0.01
+    # config["entropy_coeff_schedule"] = None
 
-    config["num_data_loader_buffers"] = 1  # larger number goes faster but uses more GPU memory
-    config["minibatch_buffer_size"] = 1  # number of train batches to  retain for minibatching, only effect if num_sgd_iter > 1
-    config["num_sgd_iter"] = 3  # number of passes over each train batch
-
-    if buffer:
-        config["replay_proportion"] = 0.8  # set to > 0 to use replay buffer
-        config["replay_buffer_num_slots"] = 30000  # number of sample batches to store for replay
-    else:
-        config["replay_proportion"] = 0  # set to > 0 to use replay buffer
-        config["replay_buffer_num_slots"] = 0  # number of sample batches to store for replay
-
-    # TODO: might crash if learner_queue_size is not 1
-    config["learner_queue_size"] = 10  # training batches in queue to learner
-    config["learner_queue_timeout"] = 600
-    config["max_sample_requests_in_flight_per_worker"] = 2
-    config["broadcast_interval"] = 1  # max number of workers to broadcast one set of weights to
-
-    # Learning params.
-    config["grad_clip"] = 40.0
-    # either "adam" or "rmsprop"
-    config["opt_type"] = "adam"
-
-    # only used if rmsprop
-    config["decay"] = 0.99
-    config["momentum"] = 0.0
-    config["epsilon"] = 0.1
-
-    # balancing the three losses
-    config["vf_loss_coeff"] = 0.5
-    config["entropy_coeff"] = 0.01
-    config["entropy_coeff_schedule"] = None
+    config["rollout_fragment_length"] = 50
+    config["train_batch_size"] = 500
+    config["num_workers"] = 7
+    config["num_envs_per_worker"] = 12
+    config["clip_rewards"] = True
+    config["lr_schedule"] = [[0, 0.0005],[20000000, 0.000000000001],]
 
 
 def set_appo_config(config, buffer):
     set_impala_config(config, buffer)
-    config["vtrace"] = True  # v-trace of GAE advantages
+    # config["vtrace"] = True  # v-trace of GAE advantages
+    #
+    # # only used if v_trace is False
+    # config["use_critic"] = True
+    # config["use_gae"] = True
+    # config["lambda"] = 0.95
+    #
+    # config["clip_param"] = 0.2
+    # config["use_kl_loss"] = False
+    # config["kl_coeff"] = 0.5
+    # config["kl_target"] = 0.01
 
-    # only used if v_trace is False
-    config["use_critic"] = True
-    config["use_gae"] = True
     config["lambda"] = 0.95
-
-    config["clip_param"] = 0.2
-    config["use_kl_loss"] = False
     config["kl_coeff"] = 0.5
-    config["kl_target"] = 0.01
+    config["clip_param"] = 0.1
 
 
 def get_config_apex(buffer):

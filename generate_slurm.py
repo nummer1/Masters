@@ -1,3 +1,8 @@
+# apex: 9
+# ppo: 11
+# impala, appo: 128
+
+
 with open("email.txt", "r") as email:
     email = email.read().strip('\n')
 
@@ -7,6 +12,15 @@ with open("experiments.txt", "r") as experiments:
             continue
 
         line = line.split()
+
+        ntasks = "8"
+        # if line[0] == "apex":
+        #     ntasks = "9"
+        # if line[0] == "ppo":
+        #     ntasks = "11"
+        # if line[0] in ["impala", "appo"]:
+        #     ntasks = "129"
+
         name = [line[0], line[1], line[2], "singletask" if line[3] == 't' else "multitask", line[5]]
         if line[3] == 't':
             name.append(line[4])
@@ -14,6 +28,7 @@ with open("experiments.txt", "r") as experiments:
             name.append("genratetextures")
         if line[7] == 't':
             name.append("buffer")
+
         job_name = '_'.join(name)
         output = job_name + "_srun.out"
         run = ' '.join(line)
@@ -24,7 +39,7 @@ with open("experiments.txt", "r") as experiments:
         "#SBATCH --account=ie-idi",
         "#SBATCH --time=40:00:00",
         "#SBATCH --nodes=1",
-        "#SBATCH --ntasks-per-node=6",
+        "#SBATCH --ntasks-per-node=" + ntasks,
         "#SBATCH --mem=90000",
         "#SBATCH --gres=gpu:V100:1",
         '#SBATCH --job-name="' + job_name + '"',

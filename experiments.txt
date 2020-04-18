@@ -31,3 +31,17 @@ appo dense easy t 7 500 f t
 appo dense easy t 7 500 t t
 ppo dense easy t 7 500 f f
 ppo dense easy t 7 500 t f
+
+
+impala lstm easy t 7 1 f f
+impala transformer easy t 7 1 f f
+impala dense easy t 7 1 f f
+appo lstm easy t 7 1 f f
+appo transformer easy t 7 1 f f
+appo dense easy t 7 1 f f
+apex lstm easy t 7 1 f f
+apex transformer easy t 7 1 f f
+apex dense easy t 7 1 f f
+ppo lstm easy t 7 1 f f
+ppo transformer easy t 7 1 f f
+ppo dense easy t 7 1 f f

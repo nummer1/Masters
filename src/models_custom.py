@@ -175,7 +175,7 @@ class TransformerCustomModel(RecurrentTFModelV2):
         trans1 = transformer(shorten, d_model, n_heads)
         # trans2 = transformer(trans1, d_model, n_heads)
 
-        logits = Dense(15, activation=tf.keras.activations.linear, name="logits")(trans1)
+        logits = Dense(15, activation=tf.keras.activations.softmax, name="logits")(trans1)
         values = Dense(1, activation=None, name="values")(trans1)
 
         # Create the RNN model
@@ -292,7 +292,7 @@ class SimpleCustomModel(RecurrentTFModelV2):
 
         # Postprocess LSTM output with another hidden layer and compute values
         logits = Dense(
-            15, activation=tf.keras.activations.linear, name="logits")(lstm_out)
+            15, activation=tf.keras.activations.softmax, name="logits")(lstm_out)
         values = Dense(
             1, activation=None, name="values")(lstm_out)
 
@@ -341,7 +341,7 @@ class DenseCustomModel(RecurrentTFModelV2):
 
         # Postprocess LSTM output with another hidden layer and compute values
         logits = TimeDistributed(Dense(
-            15, activation=tf.keras.activations.linear), name="logits")(dense1)
+            15, activation=tf.keras.activations.softmax), name="logits")(dense1)
         values = TimeDistributed(Dense(
             1, activation=None), name="values")(dense1)
 
@@ -372,6 +372,133 @@ class DenseCustomModel(RecurrentTFModelV2):
         ]
 
     @override(ModelV2)
+    def value_function(self):
+        return tf.reshape(self._value_out, [-1])
+
+
+class LSTMGuessingGameModel(RecurrentTFModelV2):
+    def __init__(self, obs_space, action_space, num_outputs, model_config, name):
+        super(LSTMGuessingGameModel, self).__init__(obs_space, action_space, num_outputs, model_config, name)
+        self.cell_size = model_config["custom_options"]["cell_size"]
+
+        input_layer = Input(
+            shape=(None, 4), name="input")
+        state_in_h = Input(shape=(self.cell_size, ), name="h")
+        state_in_c = Input(shape=(self.cell_size, ), name="c")
+        seq_in = Input(shape=(), name="seq_in", dtype=tf.int32)
+
+        # Preprocess observation with a hidden layer and send to LSTM cell
+        dense1 = Dense(self.cell_size, activation=tf.nn.relu, name="dense1")(input_layer)
+        dense2 = Dense(self.cell_size, activation=tf.nn.relu, name="dense2")(dense1)
+
+        lstm_out, state_h, state_c = LSTM(
+            self.cell_size, return_sequences=True, return_state=True, name="lstm")(
+                inputs=dense2,
+                mask=tf.sequence_mask(seq_in),
+                initial_state=[state_in_h, state_in_c])
+
+        # Postprocess LSTM output with another hidden layer and compute values
+        logits = Dense(
+            num_outputs, activation=tf.keras.activations.linear, name="logits")(lstm_out)
+        values = Dense(
+            1, activation=None, name="values")(lstm_out)
+
+        # Create the RNN model
+        self.rnn_model = tf.keras.Model(
+            inputs=[input_layer, seq_in, state_in_h, state_in_c],
+            outputs=[logits, values, state_h, state_c])
+        self.register_variables(self.rnn_model.variables)
+        self.rnn_model.summary()
+
+    @override(RecurrentTFModelV2)
+    def forward_rnn(self, inputs, state, seq_lens):
+        model_out, self._value_out, h, c = self.rnn_model([inputs, seq_lens] + state)
+        return model_out, [h, c]
+
+    @override(ModelV2)
+    def get_initial_state(self):
+        # Get the initial recurrent state values for the model
+        return [
+            np.zeros(self.cell_size, np.float32),
+            np.zeros(self.cell_size, np.float32),
+        ]
+
+    @override(ModelV2)
+    def value_function(self):
+        return tf.reshape(self._value_out, [-1])
+
+
+class TransformerGuessingGameModel(RecurrentTFModelV2):
+    def __init__(self, obs_space, action_space, num_outputs, model_config, name):
+        super(TransformerGuessingGameModel, self).__init__(obs_space, action_space, num_outputs, model_config, name)
+        self.cell_size = model_config["custom_options"]["cell_size"]
+        self.n_heads = model_config["custom_options"]["n_heads"]
+
+        input_layer = Input(
+            shape=(None, 4), name="input")
+
+        # Preprocess observation with a hidden layer and send to LSTM cell
+        dense1 = Dense(self.cell_size, activation=tf.nn.relu, name="dense1")(input_layer)
+        dense2 = Dense(self.cell_size, activation=tf.nn.relu, name="dense2")(dense1)
+
+        trans1 = transformer(dense2, self.cell_size, self.n_heads)
+
+        # Postprocess LSTM output with another hidden layer and compute values
+        logits = Dense(
+            num_outputs, activation=tf.keras.activations.linear, name="logits")(trans1)
+        values = Dense(
+            1, activation=None, name="values")(trans1)
+
+        # Create the RNN model
+        self.rnn_model = tf.keras.Model(
+            inputs=[input_layer],
+            outputs=[logits, values])
+        self.register_variables(self.rnn_model.variables)
+        self.rnn_model.summary()
+
+    @override(RecurrentTFModelV2)
+    def forward_rnn(self, inputs, state, seq_lens):
+        model_out, self._value_out = self.rnn_model([inputs])
+        return model_out, state
+
+    @override(ModelV2)
+    def get_initial_state(self):
+        # Get the initial recurrent state values for the model
+        return [
+            np.zeros(self.cell_size, np.float32),
+            np.zeros(self.cell_size, np.float32),
+        ]
+
+    @override(ModelV2)
+    def value_function(self):
+        return tf.reshape(self._value_out, [-1])
+
+
+
+class DenseGuessingGameModel(TFModelV2):
+    def __init__(self, obs_space, action_space, num_outputs, model_config, name):
+        super(DenseGuessingGameModel, self).__init__(obs_space, action_space, num_outputs, model_config, name)
+        self.cell_size = model_config["custom_options"]["cell_size"]
+
+        self.inputs = Input(shape=obs_space.shape, name="input")
+
+        # Preprocess observation with a hidden layer and send to LSTM cell
+        dense1 = Dense(self.cell_size, activation=tf.nn.relu, name="dense1")(self.inputs)
+        dense2 = Dense(self.cell_size, activation=tf.nn.relu, name="dense2")(dense1)
+        dense3 = Dense(self.cell_size, activation=tf.nn.relu, name="dense3")(dense2)
+
+        # Postprocess LSTM output with another hidden layer and compute values
+        logits = Dense(num_outputs, activation=tf.keras.activations.linear, name="logits")(dense3)
+        values = Dense(1, activation=None, name="values")(dense3)
+
+        self.base_model = tf.keras.Model(self.inputs, [logits, values])
+        self.register_variables(self.base_model.variables)
+        self.base_model.summary()
+
+    def forward(self, input_dict, state, seq_lens):
+        model_out, self._value_out = self.base_model(input_dict["obs"])
+        return model_out, state
+
     def value_function(self):
         return tf.reshape(self._value_out, [-1])
 

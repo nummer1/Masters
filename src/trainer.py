@@ -23,6 +23,7 @@ buffer = True if sys.argv[8] == 't' else False
 if alg == "test":
     ray.init()
 else:
+    # ray.init()
     ray.init(num_gpus=1, memory=25*1024*1024*1024, object_store_memory=60*1024*1024*1024)
         # driver_object_store_memory=10*1024*1024*1024)
 
@@ -65,7 +66,17 @@ if alg == "test":
 
 name = alg + "_" + model + "_" + dist + ("_single" if is_single else "_multi") + \
         (("_" + str(env_id)) if is_single else "") + "_" + str(num_levels) + \
-        ("_genassets" if use_generated_assets else "")
+        ("_genassets" if use_generated_assets else "") + \
+        ("_buffer" if buffer else "")
+
+
+from ray.rllib.agents.impala import ImpalaTrainer
+trainer = ImpalaTrainer(conf)
+policy = trainer.get_policy()
+
+dist = policy.dist_class
+print("!!!", dist)
+quit()
 
 
 # TODO: use num_samples to run multiple experiments in parallell
