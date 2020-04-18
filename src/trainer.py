@@ -70,15 +70,6 @@ name = alg + "_" + model + "_" + dist + ("_single" if is_single else "_multi") +
         ("_buffer" if buffer else "")
 
 
-from ray.rllib.agents.impala import ImpalaTrainer
-trainer = ImpalaTrainer(conf)
-policy = trainer.get_policy()
-
-dist = policy.dist_class
-print("!!!", dist)
-quit()
-
-
 # TODO: use num_samples to run multiple experiments in parallell
 analysis = tune.run(
     alg_dict[alg],
