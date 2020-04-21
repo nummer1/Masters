@@ -74,6 +74,18 @@ def res_block(input_layer, filters, name):
     return add
 
 
+def res_block_notime(input_layer, filters, name):
+    relu = Activation('relu', name=name+"_relu")(input_layer)
+    conv1 = Conv2D(
+        filters=filters, kernel_size=(4, 4), strides=(1, 1), padding='same',
+        dilation_rate=(1, 1), activation=tf.nn.relu, name=name+"_conv1")(relu)
+    conv2 = Conv2D(
+        filters=filters, kernel_size=(4, 4), strides=(1, 1), padding='same',
+        dilation_rate=(1, 1), activation=tf.keras.activations.linear, name=name+"_conv2")(conv1)
+    add = Add(name=name+"_add")([input_layer, conv2])
+    return add
+
+
 def conv_block(input_layer, filters, name):
     conv = TimeDistributed(Conv2D(
         filters=filters, kernel_size=(4, 4), strides=(1, 1), padding='same',
@@ -85,6 +97,17 @@ def conv_block(input_layer, filters, name):
     return res2
 
 
+def conv_block_notime(input_layer, filters, name):
+    conv = Conv2D(
+        filters=filters, kernel_size=(4, 4), strides=(1, 1), padding='same',
+        dilation_rate=(1, 1), activation=tf.keras.activations.linear, name=name+"_conv1")(input_layer)
+    max = MaxPooling2D(
+        pool_size=(2, 2), strides=(2, 2), padding='same', name=name+"_pool")(conv)
+    res1 = res_block_notime(max, filters, name+"_res1")
+    res2 = res_block_notime(res1, filters, name+"_res2")
+    return res2
+
+
 def conv_network(input_layer):
     # x3 conv_block with [16, 32, 32] filters
     reshape = TimeDistributed(Reshape((64, 64, 3)), name="reshape")(input_layer)
@@ -93,6 +116,17 @@ def conv_network(input_layer):
     block3 = conv_block(block2, 32, "block3")
     relu = TimeDistributed(Activation('relu'), name='relu_out')(block3)
     flatten = TimeDistributed(Flatten(), name="flatten")(relu) # data_format="channels_last" (default)
+    return flatten
+
+
+def conv_network_notime(input_layer):
+    # x3 conv_block with [16, 32, 32] filters
+    reshape = Reshape((64, 64, 3), name="reshape")(input_layer)
+    block1 = conv_block_notime(reshape, 16, "block1")
+    block2 = conv_block_notime(block1, 32, "block2")
+    block3 = conv_block_notime(block2, 32, "block3")
+    relu = Activation('relu', name='relu_out')(block3)
+    flatten = Flatten(name="flatten")(relu) # data_format="channels_last" (default)
     return flatten
 
 
@@ -325,7 +359,7 @@ class SimpleCustomModel(RecurrentTFModelV2):
         return tf.reshape(self._value_out, [-1])
 
 
-class DenseCustomModel(RecurrentTFModelV2):
+class DenseCustomModel(TFModelV2):
     def __init__(self, obs_space, action_space, num_outputs, model_config, name,
             cell_size=256, plot_model=False):
         super(DenseCustomModel, self).__init__(obs_space, action_space, num_outputs, model_config, name)
@@ -334,16 +368,16 @@ class DenseCustomModel(RecurrentTFModelV2):
         input_layer = Input(
             shape=(None, 64 * 64 * 3), name="input")
 
-        flatten = conv_network(input_layer)
+        flatten = conv_network_notime(input_layer)
 
         # Preprocess observation with a hidden layer and send to LSTM cell
-        dense1 = TimeDistributed(Dense(256, activation=tf.nn.relu), name="dense1")(flatten)
+        dense1 = Dense(256, activation=tf.nn.relu, name="dense1")(flatten)
 
         # Postprocess LSTM output with another hidden layer and compute values
-        logits = TimeDistributed(Dense(
-            15, activation=tf.keras.activations.softmax), name="logits")(dense1)
-        values = TimeDistributed(Dense(
-            1, activation=None), name="values")(dense1)
+        logits = Dense(
+            15, activation=tf.keras.activations.softmax, name="logits")(dense1)
+        values = Dense(
+            1, activation=None, name="values")(dense1)
 
         # Create the model
         self.rnn_model = tf.keras.Model(
@@ -355,12 +389,9 @@ class DenseCustomModel(RecurrentTFModelV2):
         if plot_model:
             tf.keras.utils.plot_model(self.rnn_model, to_file='model_dense.png', show_shapes=True)
 
-    @override(RecurrentTFModelV2)
-    def forward_rnn(self, inputs, state, seq_lens):
-        inputs = preproc(inputs)
-        # model_out, self._value_out = self.rnn_model([inputs, seq_lens])
-        model_out, self._value_out = self.rnn_model([inputs])
-        # return output and new states
+    @override(TFModelV2)
+    def forward(self, input_dict, state, seq_lens):
+        model_out, self._value_out = self.rnn_model(input_dict["obs"])
         return model_out, state
 
     @override(ModelV2)
@@ -397,11 +428,13 @@ class LSTMGuessingGameModel(RecurrentTFModelV2):
                 mask=tf.sequence_mask(seq_in),
                 initial_state=[state_in_h, state_in_c])
 
+        dense3 = Dense(self.cell_size, activation=tf.nn.relu, name="dense3")(lstm_out)
+
         # Postprocess LSTM output with another hidden layer and compute values
         logits = Dense(
-            num_outputs, activation=tf.keras.activations.linear, name="logits")(lstm_out)
+            num_outputs, activation=tf.keras.activations.softmax, name="logits")(dense3)
         values = Dense(
-            1, activation=None, name="values")(lstm_out)
+            1, activation=None, name="values")(dense3)
 
         # Create the RNN model
         self.rnn_model = tf.keras.Model(
@@ -442,12 +475,13 @@ class TransformerGuessingGameModel(RecurrentTFModelV2):
         dense2 = Dense(self.cell_size, activation=tf.nn.relu, name="dense2")(dense1)
 
         trans1 = transformer(dense2, self.cell_size, self.n_heads)
+        trans2 = transformer(trans1, self.cell_size, self.n_heads)
 
         # Postprocess LSTM output with another hidden layer and compute values
         logits = Dense(
-            num_outputs, activation=tf.keras.activations.linear, name="logits")(trans1)
+            num_outputs, activation=tf.keras.activations.linear, name="logits")(trans2)
         values = Dense(
-            1, activation=None, name="values")(trans1)
+            1, activation=None, name="values")(trans2)
 
         # Create the RNN model
         self.rnn_model = tf.keras.Model(
@@ -486,10 +520,11 @@ class DenseGuessingGameModel(TFModelV2):
         dense1 = Dense(self.cell_size, activation=tf.nn.relu, name="dense1")(self.inputs)
         dense2 = Dense(self.cell_size, activation=tf.nn.relu, name="dense2")(dense1)
         dense3 = Dense(self.cell_size, activation=tf.nn.relu, name="dense3")(dense2)
+        dense4 = Dense(self.cell_size, activation=tf.nn.relu, name="dense4")(dense3)
 
         # Postprocess LSTM output with another hidden layer and compute values
-        logits = Dense(num_outputs, activation=tf.keras.activations.linear, name="logits")(dense3)
-        values = Dense(1, activation=None, name="values")(dense3)
+        logits = Dense(num_outputs, activation=tf.keras.activations.linear, name="logits")(dense4)
+        values = Dense(1, activation=None, name="values")(dense4)
 
         self.base_model = tf.keras.Model(self.inputs, [logits, values])
         self.register_variables(self.base_model.variables)

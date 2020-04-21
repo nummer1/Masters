@@ -1,13 +1,9 @@
 impala lstm memory f 0 500 f f
 ppo lstm memory f 0 500 f f
 appo lstm memory f 0 500 f f
-rainbow lstm memory f 0 500 f f
-apex lstm memory f 0 500 f f
 impala transformer memory f 0 500 f f
 ppo transformer memory f 0 500 f f
 appo transformer memory f 0 500 f f
-rainbow transformer memory f 0 500 f f
-apex transformer memory f 0 500 f f
 
 impala simple easy f 0 0 f f
 impala simple easy f 0 500 f f
@@ -31,7 +27,6 @@ appo dense easy t 7 500 f t
 appo dense easy t 7 500 t t
 ppo dense easy t 7 500 f f
 ppo dense easy t 7 500 t f
-
 
 impala lstm easy t 7 1 f f
 impala transformer easy t 7 1 f f
