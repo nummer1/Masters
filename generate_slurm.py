@@ -13,7 +13,7 @@ with open("experiments.txt", "r") as experiments:
 
         line = line.split()
 
-        ntasks = "8"
+        ntasks = "6"
         # if line[0] == "apex":
         #     ntasks = "9"
         # if line[0] == "ppo":

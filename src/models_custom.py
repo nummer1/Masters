@@ -421,20 +421,19 @@ class LSTMGuessingGameModel(RecurrentTFModelV2):
         # Preprocess observation with a hidden layer and send to LSTM cell
         dense1 = Dense(self.cell_size, activation=tf.nn.relu, name="dense1")(input_layer)
         dense2 = Dense(self.cell_size, activation=tf.nn.relu, name="dense2")(dense1)
+        dense3 = Dense(self.cell_size, activation=tf.nn.relu, name="dense3")(dense2)
 
         lstm_out, state_h, state_c = LSTM(
             self.cell_size, return_sequences=True, return_state=True, name="lstm")(
-                inputs=dense2,
+                inputs=dense3,
                 mask=tf.sequence_mask(seq_in),
                 initial_state=[state_in_h, state_in_c])
 
-        dense3 = Dense(self.cell_size, activation=tf.nn.relu, name="dense3")(lstm_out)
-
         # Postprocess LSTM output with another hidden layer and compute values
         logits = Dense(
-            num_outputs, activation=tf.keras.activations.softmax, name="logits")(dense3)
+            num_outputs, activation=tf.keras.activations.linear, name="logits")(lstm_out)
         values = Dense(
-            1, activation=None, name="values")(dense3)
+            1, activation=None, name="values")(lstm_out)
 
         # Create the RNN model
         self.rnn_model = tf.keras.Model(
@@ -473,15 +472,15 @@ class TransformerGuessingGameModel(RecurrentTFModelV2):
         # Preprocess observation with a hidden layer and send to LSTM cell
         dense1 = Dense(self.cell_size, activation=tf.nn.relu, name="dense1")(input_layer)
         dense2 = Dense(self.cell_size, activation=tf.nn.relu, name="dense2")(dense1)
+        dense3 = Dense(self.cell_size, activation=tf.nn.relu, name="dense2")(dense2)
 
-        trans1 = transformer(dense2, self.cell_size, self.n_heads)
-        trans2 = transformer(trans1, self.cell_size, self.n_heads)
+        trans1 = transformer(dense3, self.cell_size, self.n_heads)
 
         # Postprocess LSTM output with another hidden layer and compute values
         logits = Dense(
-            num_outputs, activation=tf.keras.activations.linear, name="logits")(trans2)
+            num_outputs, activation=tf.keras.activations.linear, name="logits")(trans1)
         values = Dense(
-            1, activation=None, name="values")(trans2)
+            1, activation=None, name="values")(trans1)
 
         # Create the RNN model
         self.rnn_model = tf.keras.Model(
