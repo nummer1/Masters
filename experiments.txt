@@ -154,3 +154,18 @@ impala dense easy f 0 0 f f
 impala dense easy f 0 500 f f
 impala dense easy f 0 0 f t
 impala dense easy f 0 500 f t
+
+
+impala lstm easy f 0 10 f f
+impala lstm easy f 0 2 f f
+impala transformer easy f 0 10 f f
+impala transformer easy f 0 2 f f
+impala dense easy f 0 10 f f
+impala dense easy f 0 2 f f
+
+impala lstm easy t 7 10 f f
+impala lstm easy t 7 2 f f
+impala transformer easy t 7 10 f f
+impala transformer easy t 7 2 f f
+impala dense easy t 7 10 f f
+impala dense easy t 7 2 f f

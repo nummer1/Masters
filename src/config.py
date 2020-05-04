@@ -341,23 +341,41 @@ def set_impala_config(config, buffer):
     # config["lr_schedule"] = [[0, 0.0005],[20000000, 0.000000000001],]
     #### 1 ####
 
-    #### 2 ####
+    # #### 2 ####
+    # config["gamma"] = 0.999
+    # config["lr"] = 0.0005
+    # config["num_workers"] = 5
+    # config["num_envs_per_worker"] = 12
+    # config["rollout_fragment_length"] = 50
+    # config["train_batch_size"] = 50 * 12 * 8
+    # config["num_sgd_iter"] = 3
+    # config["entropy_coeff"] = 0.01
+    #
+    # if buffer:
+    #     config["replay_proportion"] = 0.8  # set to > 0 to use replay buffer
+    #     config["replay_buffer_num_slots"] = 12 * 8 * 10  # number of sample batches to store for replay
+    # else:
+    #     config["replay_proportion"] = 0  # set to > 0 to use replay buffer
+    #     config["replay_buffer_num_slots"] = 0  # number of sample batches to store for replay
+    # #### 2 ####
+
+    #### 3 ####
     config["gamma"] = 0.999
-    config["lr"] = 0.0005
+    config["lr"] = 0.00005
     config["num_workers"] = 5
-    config["num_envs_per_worker"] = 32
-    config["rollout_fragment_length"] = 256
-    config["train_batch_size"] = 256 * 32 * 8
+    config["num_envs_per_worker"] = 12
+    config["rollout_fragment_length"] = 50
+    config["train_batch_size"] = 50 * 12 * 8
     config["num_sgd_iter"] = 3
     config["entropy_coeff"] = 0.01
 
     if buffer:
         config["replay_proportion"] = 0.8  # set to > 0 to use replay buffer
-        config["replay_buffer_num_slots"] = 10  # number of sample batches to store for replay
+        config["replay_buffer_num_slots"] = 12 * 8 * 10  # number of sample batches to store for replay
     else:
         config["replay_proportion"] = 0  # set to > 0 to use replay buffer
         config["replay_buffer_num_slots"] = 0  # number of sample batches to store for replay
-    #### 2 ####
+    #### 3 ####
 
 
 def set_appo_config(config, buffer):
