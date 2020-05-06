@@ -119,7 +119,7 @@ def set_env(config, is_single, env_id, num_levels, use_generated_assets, dist):
             "env_config": env_config,
             "num_envs_per_worker": 12
         }
-    # TODO set "explore": False for rainbow in evaluation_config
+    # NOTE: set "explore": False for rainbow in evaluation_config
 
 
 def set_common_config(config):
@@ -328,7 +328,7 @@ def set_impala_config(config, buffer):
     #     config["replay_proportion"] = 0  # set to > 0 to use replay buffer
     #     config["replay_buffer_num_slots"] = 0  # number of sample batches to store for replay
     #
-    # # TODO: might crash if learner_queue_size is not 1
+    # # NOTE: might crash if learner_queue_size is not 1
     # config["learner_queue_size"] = 10  # training batches in queue to learner
     # config["learner_queue_timeout"] = 600
     # config["max_sample_requests_in_flight_per_worker"] = 2

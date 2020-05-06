@@ -58,8 +58,8 @@ config.set_env(conf, is_single, env_id, num_levels, use_generated_assets, dist)
 
 checkpoint_freq = 40
 checkpoint_at_end = True
-max_failures = 10  # TODO: increase this for memory environment
-reuse_actors = True  # TODO: setting to True might break
+max_failures = 10  # NOTE: increase this for memory environment
+reuse_actors = True  # NOTE: setting to True might break
 stop = {"timesteps_total": int(2.5e7)} if dist == "easy" else {"timesteps_total": int(2e8)}
 if alg == "test":
     stop = {"training_iteration": 2}
@@ -70,7 +70,7 @@ name = alg + "_" + model + "_" + dist + ("_single" if is_single else "_multi") +
         ("_buffer" if buffer else "")
 
 
-# TODO: use num_samples to run multiple experiments in parallell
+# NOTE: use num_samples to run multiple experiments in parallell
 analysis = tune.run(
     alg_dict[alg],
     name=name,
