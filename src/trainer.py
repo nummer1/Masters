@@ -56,7 +56,7 @@ config.set_model(conf, model)
 config.set_env(conf, is_single, env_id, num_levels, use_generated_assets, dist)
 
 
-checkpoint_freq = 10
+checkpoint_freq = 40
 checkpoint_at_end = True
 max_failures = 10  # TODO: increase this for memory environment
 reuse_actors = True  # TODO: setting to True might break

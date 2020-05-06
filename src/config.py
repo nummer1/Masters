@@ -277,22 +277,39 @@ def set_ppo_config(config):
     #
     # config["batch_mode"] = "truncate_episodes"
 
+    #### 1 ####
+    # config["lambda"] = 0.95
+    # config["kl_coeff"] = 0.5
+    # config["clip_rewards"] = True
+    # config["clip_param"] = 0.1
+    # config["vf_clip_param"] = 10.0
+    # config["entropy_coeff"] = 0.01
+    # config["train_batch_size"] = 5000
+    # config["rollout_fragment_length"] = 100
+    # config["sgd_minibatch_size"] = 500
+    # config["num_sgd_iter"] = 10
+    # config["num_workers"] = 7
+    # config["num_envs_per_worker"] = 12
+    # config["batch_mode"] = "truncate_episodes"
+    # # config["observation_filter"] = "NoFilter"
+    # config["vf_share_layers"] = True
+    # config["num_gpus"] = 1
+    #### 1 ####
+
+    #### 2 ####
+    config["gamma"] = 0.999
+    config["lr"] = 0.00005
+    config["num_workers"] = 5
+    config["num_envs_per_worker"] = 12
+    config["rollout_fragment_length"] = 50
+    config["train_batch_size"] = 50 * 12 * 8
+    config["num_sgd_iter"] = 3
+    config["entropy_coeff"] = 0.01
+
     config["lambda"] = 0.95
     config["kl_coeff"] = 0.5
-    config["clip_rewards"] = True
     config["clip_param"] = 0.1
-    config["vf_clip_param"] = 10.0
-    config["entropy_coeff"] = 0.01
-    config["train_batch_size"] = 5000
-    config["rollout_fragment_length"] = 100
-    config["sgd_minibatch_size"] = 500
-    config["num_sgd_iter"] = 10
-    config["num_workers"] = 7
-    config["num_envs_per_worker"] = 12
-    config["batch_mode"] = "truncate_episodes"
-    # config["observation_filter"] = "NoFilter"
-    config["vf_share_layers"] = True
-    config["num_gpus"] = 1
+    #### 2 ####
 
 
 def set_impala_config(config, buffer):

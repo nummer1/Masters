@@ -169,3 +169,45 @@ impala transformer easy t 7 10 f f
 impala transformer easy t 7 2 f f
 impala dense easy t 7 10 f f
 impala dense easy t 7 2 f f
+
+impala lstm easy f 0 10 f t
+impala lstm easy f 0 2 f t
+impala transformer easy f 0 10 f t
+impala transformer easy f 0 2 f t
+impala dense easy f 0 10 f t
+impala dense easy f 0 2 f t
+
+impala lstm easy t 7 10 f t
+impala lstm easy t 7 2 f t
+impala transformer easy t 7 10 f t
+impala transformer easy t 7 2 f t
+impala dense easy t 7 10 f t
+impala dense easy t 7 2 f t
+
+ppo lstm easy f 0 10 f f
+ppo lstm easy f 0 2 f f
+ppo transformer easy f 0 10 f f
+ppo transformer easy f 0 2 f f
+ppo dense easy f 0 10 f f
+ppo dense easy f 0 2 f f
+
+ppo lstm easy t 7 10 f f
+ppo lstm easy t 7 2 f f
+ppo transformer easy t 7 10 f f
+ppo transformer easy t 7 2 f f
+ppo dense easy t 7 10 f f
+ppo dense easy t 7 2 f f
+
+appo lstm easy f 0 10 f f
+appo lstm easy f 0 2 f f
+appo transformer easy f 0 10 f f
+appo transformer easy f 0 2 f f
+appo dense easy f 0 10 f f
+appo dense easy f 0 2 f f
+
+appo lstm easy t 7 10 f f
+appo lstm easy t 7 2 f f
+appo transformer easy t 7 10 f f
+appo transformer easy t 7 2 f f
+appo dense easy t 7 10 f f
+appo dense easy t 7 2 f f
