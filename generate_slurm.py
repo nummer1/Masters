@@ -28,6 +28,15 @@ with open("experiments.txt", "r") as experiments:
             name.append("genratetextures")
         if line[7] == 't':
             name.append("buffer")
+        if line[8] == 'f':
+            name.append("noVtrace")
+
+        if len(line) > 9:
+            name.append(line[9])
+            name.append(line[10])
+        else:
+            name.append("softmax")
+            name.append("adam")
 
         job_name = '_'.join(name)
         output = job_name + "_srun.out"

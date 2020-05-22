@@ -18,6 +18,11 @@ env_id = int(sys.argv[5])
 num_levels = int(sys.argv[6])
 use_generated_assets = True if sys.argv[7] == 't' else False
 buffer = True if sys.argv[8] == 't' else False
+vtrace = True if sys.argv[9] == 't' else False
+
+last_activation = sys.argv[10]  # "softmax", "linear"
+optimizer = sys.argv[11]  # "adam", "rmsprop"
+
 
 # memory is total amount of memory available
 if alg == "test":
@@ -51,8 +56,8 @@ alg_dict = {
     'test': "IMPALA"
 }
 
-conf = config_dict[alg](buffer)
-config.set_model(conf, model)
+conf = config_dict[alg](buffer, vtrace, optimizer)
+config.set_model(conf, model, last_activation)
 config.set_env(conf, is_single, env_id, num_levels, use_generated_assets, dist)
 
 
@@ -67,7 +72,10 @@ if alg == "test":
 name = alg + "_" + model + "_" + dist + ("_single" if is_single else "_multi") + \
         (("_" + str(env_id)) if is_single else "") + "_" + str(num_levels) + \
         ("_genassets" if use_generated_assets else "") + \
-        ("_buffer" if buffer else "")
+        ("_buffer" if buffer else "") + ("_noVtrace" if not vtrace else "") + \
+        "_" + (last_activation) + "_" + (optimizer)
+
+print(name)
 
 
 # NOTE: use num_samples to run multiple experiments in parallell

@@ -1,213 +1,293 @@
-impala lstm memory f 0 500 f f
-ppo lstm memory f 0 500 f f
-appo lstm memory f 0 500 f f
-impala transformer memory f 0 500 f f
-ppo transformer memory f 0 500 f f
-appo transformer memory f 0 500 f f
+impala lstm memory f 0 500 f f t
+ppo lstm memory f 0 500 f f t
+appo lstm memory f 0 500 f f t
+impala transformer memory f 0 500 f f t
+ppo transformer memory f 0 500 f f t
+appo transformer memory f 0 500 f f t
 
-impala simple easy f 0 0 f f
-impala simple easy f 0 500 f f
-impala lstm easy f 0 0 f f
-impala lstm easy f 0 500 f f
-impala transformer easy f 0 0 f f
-impala transformer easy f 0 500 f f
+impala simple easy f 0 0 f f t
+impala simple easy f 0 500 f f t
+impala lstm easy f 0 0 f f t
+impala lstm easy f 0 500 f f t
+impala transformer easy f 0 0 f f t
+impala transformer easy f 0 500 f f t
 
-impala lstm easy t 0 500 f f
-impala lstm easy t 1 500 f f
-impala lstm easy t 2 500 f f
-impala lstm easy t 3 500 f f
-impala lstm easy t 4 500 f f
-impala lstm easy t 5 500 f f
-impala transformer easy t 0 500 f f
-impala transformer easy t 1 500 f f
-impala transformer easy t 2 500 f f
-impala transformer easy t 3 500 f f
-impala transformer easy t 4 500 f f
-impala transformer easy t 5 500 f f
+impala lstm easy t 0 500 f f t
+impala lstm easy t 1 500 f f t
+impala lstm easy t 2 500 f f t
+impala lstm easy t 3 500 f f t
+impala lstm easy t 4 500 f f t
+impala lstm easy t 5 500 f f t
+impala transformer easy t 0 500 f f t
+impala transformer easy t 1 500 f f t
+impala transformer easy t 2 500 f f t
+impala transformer easy t 3 500 f f t
+impala transformer easy t 4 500 f f t
+impala transformer easy t 5 500 f f t
 
-impala lstm memory t 0 500 f f
-impala lstm memory t 1 500 f f
-impala lstm memory t 2 500 f f
-impala lstm memory t 3 500 f f
-impala lstm memory t 4 500 f f
-impala lstm memory t 5 500 f f
-impala transformer memory t 0 500 f f
-impala transformer memory t 1 500 f f
-impala transformer memory t 2 500 f f
-impala transformer memory t 3 500 f f
-impala transformer memory t 4 500 f f
-impala transformer memory t 5 500 f f
+impala lstm memory t 0 500 f f t
+impala lstm memory t 1 500 f f t
+impala lstm memory t 2 500 f f t
+impala lstm memory t 3 500 f f t
+impala lstm memory t 4 500 f f t
+impala lstm memory t 5 500 f f t
+impala transformer memory t 0 500 f f t
+impala transformer memory t 1 500 f f t
+impala transformer memory t 2 500 f f t
+impala transformer memory t 3 500 f f t
+impala transformer memory t 4 500 f f t
+impala transformer memory t 5 500 f f t
 
-impala dense easy t 7 500 f f
-impala dense easy t 7 500 f t
-impala dense easy t 7 500 t t
-appo dense easy t 7 500 f f
-appo dense easy t 7 500 f t
-appo dense easy t 7 500 t t
-ppo dense easy t 7 500 f f
-ppo dense easy t 7 500 t f
+impala dense easy t 7 500 f f t
+impala dense easy t 7 500 f t t
+impala dense easy t 7 500 t t t
+appo dense easy t 7 500 f f t
+appo dense easy t 7 500 f t t
+appo dense easy t 7 500 t t t
+ppo dense easy t 7 500 f f t
+ppo dense easy t 7 500 t f t
 
-impala lstm easy t 7 1 f f
-impala transformer easy t 7 1 f f
-impala dense easy t 7 1 f f
-appo lstm easy t 7 1 f f
-appo transformer easy t 7 1 f f
-appo dense easy t 7 1 f f
-apex lstm easy t 7 1 f f
-apex transformer easy t 7 1 f f
-apex dense easy t 7 1 f f
-ppo lstm easy t 7 1 f f
-ppo transformer easy t 7 1 f f
-ppo dense easy t 7 1 f f
+impala lstm easy t 7 1 f f t
+impala transformer easy t 7 1 f f t
+impala dense easy t 7 1 f f t
+appo lstm easy t 7 1 f f t
+appo transformer easy t 7 1 f f t
+appo dense easy t 7 1 f f t
+apex lstm easy t 7 1 f f t
+apex transformer easy t 7 1 f f t
+apex dense easy t 7 1 f f t
+ppo lstm easy t 7 1 f f t
+ppo transformer easy t 7 1 f f t
+ppo dense easy t 7 1 f f t
 
-impala lstm memory t 0 1 f f
-impala lstm memory t 1 1 f f
-impala lstm memory t 2 1 f f
-impala lstm memory t 3 1 f f
-impala lstm memory t 4 1 f f
-impala lstm memory t 5 1 f f
-impala transformer memory t 0 1 f f
-impala transformer memory t 1 1 f f
-impala transformer memory t 2 1 f f
-impala transformer memory t 3 1 f f
-impala transformer memory t 4 1 f f
-impala transformer memory t 5 1 f f
+impala lstm memory t 0 1 f f t
+impala lstm memory t 1 1 f f t
+impala lstm memory t 2 1 f f t
+impala lstm memory t 3 1 f f t
+impala lstm memory t 4 1 f f t
+impala lstm memory t 5 1 f f t
+impala transformer memory t 0 1 f f t
+impala transformer memory t 1 1 f f t
+impala transformer memory t 2 1 f f t
+impala transformer memory t 3 1 f f t
+impala transformer memory t 4 1 f f t
+impala transformer memory t 5 1 f f t
 
-impala lstm easy t 0 1 f f
-impala lstm easy t 1 1 f f
-impala lstm easy t 2 1 f f
-impala lstm easy t 3 1 f f
-impala lstm easy t 4 1 f f
-impala lstm easy t 5 1 f f
-impala transformer easy t 0 1 f f
-impala transformer easy t 1 1 f f
-impala transformer easy t 2 1 f f
-impala transformer easy t 3 1 f f
-impala transformer easy t 4 1 f f
-impala transformer easy t 5 1 f f
-
-
-
-impala lstm easy t 0 500 f f
-impala lstm easy t 1 500 f f
-impala lstm easy t 2 500 f f
-impala lstm easy t 3 500 f f
-impala lstm easy t 4 500 f f
-impala lstm easy t 5 500 f f
-impala transformer easy t 0 500 f f
-impala transformer easy t 1 500 f f
-impala transformer easy t 2 500 f f
-impala transformer easy t 3 500 f f
-impala transformer easy t 4 500 f f
-impala transformer easy t 5 500 f f
-
-impala lstm easy t 0 500 f t
-impala lstm easy t 1 500 f t
-impala lstm easy t 2 500 f t
-impala lstm easy t 3 500 f t
-impala lstm easy t 4 500 f t
-impala lstm easy t 5 500 f t
-impala transformer easy t 0 500 f t
-impala transformer easy t 1 500 f t
-impala transformer easy t 2 500 f t
-impala transformer easy t 3 500 f t
-impala transformer easy t 4 500 f t
-impala transformer easy t 5 500 f t
-
-impala lstm easy t 0 0 f f
-impala lstm easy t 1 0 f f
-impala lstm easy t 2 0 f f
-impala lstm easy t 3 0 f f
-impala lstm easy t 4 0 f f
-impala lstm easy t 5 0 f f
-impala transformer easy t 0 0 f f
-impala transformer easy t 1 0 f f
-impala transformer easy t 2 0 f f
-impala transformer easy t 3 0 f f
-impala transformer easy t 4 0 f f
-impala transformer easy t 5 0 f f
-
-impala lstm easy t 0 0 f t
-impala lstm easy t 1 0 f t
-impala lstm easy t 2 0 f t
-impala lstm easy t 3 0 f t
-impala lstm easy t 4 0 f t
-impala lstm easy t 5 0 f t
-impala transformer easy t 0 0 f t
-impala transformer easy t 1 0 f t
-impala transformer easy t 2 0 f t
-impala transformer easy t 3 0 f t
-impala transformer easy t 4 0 f t
-impala transformer easy t 5 0 f t
-
-impala lstm easy f 0 0 f f
-impala lstm easy f 0 500 f f
-impala lstm easy f 0 0 f t
-impala lstm easy f 0 500 f t
-
-impala transformer easy f 0 0 f f
-impala transformer easy f 0 500 f f
-impala transformer easy f 0 0 f t
-impala transformer easy f 0 500 f t
-
-impala dense easy f 0 0 f f
-impala dense easy f 0 500 f f
-impala dense easy f 0 0 f t
-impala dense easy f 0 500 f t
+impala lstm easy t 0 1 f f t
+impala lstm easy t 1 1 f f t
+impala lstm easy t 2 1 f f t
+impala lstm easy t 3 1 f f t
+impala lstm easy t 4 1 f f t
+impala lstm easy t 5 1 f f t
+impala transformer easy t 0 1 f f t
+impala transformer easy t 1 1 f f t
+impala transformer easy t 2 1 f f t
+impala transformer easy t 3 1 f f t
+impala transformer easy t 4 1 f f t
+impala transformer easy t 5 1 f f t
 
 
-impala lstm easy f 0 10 f f
-impala lstm easy f 0 2 f f
-impala transformer easy f 0 10 f f
-impala transformer easy f 0 2 f f
-impala dense easy f 0 10 f f
-impala dense easy f 0 2 f f
 
-impala lstm easy t 7 10 f f
-impala lstm easy t 7 2 f f
-impala transformer easy t 7 10 f f
-impala transformer easy t 7 2 f f
-impala dense easy t 7 10 f f
-impala dense easy t 7 2 f f
+impala lstm easy t 0 500 f f t
+impala lstm easy t 1 500 f f t
+impala lstm easy t 2 500 f f t
+impala lstm easy t 3 500 f f t
+impala lstm easy t 4 500 f f t
+impala lstm easy t 5 500 f f t
+impala transformer easy t 0 500 f f t
+impala transformer easy t 1 500 f f t
+impala transformer easy t 2 500 f f t
+impala transformer easy t 3 500 f f t
+impala transformer easy t 4 500 f f t
+impala transformer easy t 5 500 f f t
 
-impala lstm easy f 0 10 f t
-impala lstm easy f 0 2 f t
-impala transformer easy f 0 10 f t
-impala transformer easy f 0 2 f t
-impala dense easy f 0 10 f t
-impala dense easy f 0 2 f t
+impala lstm easy t 0 500 f t t
+impala lstm easy t 1 500 f t t
+impala lstm easy t 2 500 f t t
+impala lstm easy t 3 500 f t t
+impala lstm easy t 4 500 f t t
+impala lstm easy t 5 500 f t t
+impala transformer easy t 0 500 f t t
+impala transformer easy t 1 500 f t t
+impala transformer easy t 2 500 f t t
+impala transformer easy t 3 500 f t t
+impala transformer easy t 4 500 f t t
+impala transformer easy t 5 500 f t t
 
-impala lstm easy t 7 10 f t
-impala lstm easy t 7 2 f t
-impala transformer easy t 7 10 f t
-impala transformer easy t 7 2 f t
-impala dense easy t 7 10 f t
-impala dense easy t 7 2 f t
+impala lstm easy t 0 0 f f t
+impala lstm easy t 1 0 f f t
+impala lstm easy t 2 0 f f t
+impala lstm easy t 3 0 f f t
+impala lstm easy t 4 0 f f t
+impala lstm easy t 5 0 f f t
+impala transformer easy t 0 0 f f t
+impala transformer easy t 1 0 f f t
+impala transformer easy t 2 0 f f t
+impala transformer easy t 3 0 f f t
+impala transformer easy t 4 0 f f t
+impala transformer easy t 5 0 f f t
 
-ppo lstm easy f 0 10 f f
-ppo lstm easy f 0 2 f f
-ppo transformer easy f 0 10 f f
-ppo transformer easy f 0 2 f f
-ppo dense easy f 0 10 f f
-ppo dense easy f 0 2 f f
+impala lstm easy t 0 0 f t t
+impala lstm easy t 1 0 f t t
+impala lstm easy t 2 0 f t t
+impala lstm easy t 3 0 f t t
+impala lstm easy t 4 0 f t t
+impala lstm easy t 5 0 f t t
+impala transformer easy t 0 0 f t t
+impala transformer easy t 1 0 f t t
+impala transformer easy t 2 0 f t t
+impala transformer easy t 3 0 f t t
+impala transformer easy t 4 0 f t t
+impala transformer easy t 5 0 f t t
 
-ppo lstm easy t 7 10 f f
-ppo lstm easy t 7 2 f f
-ppo transformer easy t 7 10 f f
-ppo transformer easy t 7 2 f f
-ppo dense easy t 7 10 f f
-ppo dense easy t 7 2 f f
+impala lstm easy f 0 0 f f t
+impala lstm easy f 0 500 f f t
+impala lstm easy f 0 0 f t t
+impala lstm easy f 0 500 f t t
 
-appo lstm easy f 0 10 f f
-appo lstm easy f 0 2 f f
-appo transformer easy f 0 10 f f
-appo transformer easy f 0 2 f f
-appo dense easy f 0 10 f f
-appo dense easy f 0 2 f f
+impala transformer easy f 0 0 f f t
+impala transformer easy f 0 500 f f t
+impala transformer easy f 0 0 f t t
+impala transformer easy f 0 500 f t t
 
-appo lstm easy t 7 10 f f
-appo lstm easy t 7 2 f f
-appo transformer easy t 7 10 f f
-appo transformer easy t 7 2 f f
-appo dense easy t 7 10 f f
-appo dense easy t 7 2 f f
+impala dense easy f 0 0 f f t
+impala dense easy f 0 500 f f t
+impala dense easy f 0 0 f t t
+impala dense easy f 0 500 f t t
+
+
+impala lstm easy f 0 10 f f t
+impala lstm easy f 0 2 f f t
+impala transformer easy f 0 10 f f t
+impala transformer easy f 0 2 f f t
+impala dense easy f 0 10 f f t
+impala dense easy f 0 2 f f t
+
+impala lstm easy t 7 10 f f t
+impala lstm easy t 7 2 f f t
+impala transformer easy t 7 10 f f t
+impala transformer easy t 7 2 f f t
+impala dense easy t 7 10 f f t
+impala dense easy t 7 2 f f t
+
+impala lstm easy f 0 10 f t t
+impala lstm easy f 0 2 f t t
+impala transformer easy f 0 10 f t t
+impala transformer easy f 0 2 f t t
+impala dense easy f 0 10 f t t
+impala dense easy f 0 2 f t t
+
+impala lstm easy t 7 10 f t t
+impala lstm easy t 7 2 f t t
+impala transformer easy t 7 10 f t t
+impala transformer easy t 7 2 f t t
+impala dense easy t 7 10 f t t
+impala dense easy t 7 2 f t t
+
+ppo lstm easy f 0 10 f f t
+ppo lstm easy f 0 2 f f t
+ppo transformer easy f 0 10 f f t
+ppo transformer easy f 0 2 f f t
+ppo dense easy f 0 10 f f t
+ppo dense easy f 0 2 f f t
+
+ppo lstm easy t 7 10 f f t
+ppo lstm easy t 7 2 f f t
+ppo transformer easy t 7 10 f f t
+ppo transformer easy t 7 2 f f t
+ppo dense easy t 7 10 f f t
+ppo dense easy t 7 2 f f t
+
+appo lstm easy f 0 10 f f t
+appo lstm easy f 0 2 f f t
+appo transformer easy f 0 10 f f t
+appo transformer easy f 0 2 f f t
+appo dense easy f 0 10 f f t
+appo dense easy f 0 2 f f t
+
+appo lstm easy t 7 10 f f t
+appo lstm easy t 7 2 f f t
+appo transformer easy t 7 10 f f t
+appo transformer easy t 7 2 f f t
+appo dense easy t 7 10 f f t
+appo dense easy t 7 2 f f t
+
+
+
+impala lstm easy f 0 10 f f f
+impala lstm easy f 0 2 f f f
+impala transformer easy f 0 10 f f f
+impala transformer easy f 0 2 f f f
+impala dense easy f 0 10 f f f
+impala dense easy f 0 2 f f f
+impala lstm easy t 7 10 f f f
+impala lstm easy t 7 2 f f f
+impala transformer easy t 7 10 f f f
+impala transformer easy t 7 2 f f f
+impala dense easy t 7 10 f f f
+impala dense easy t 7 2 f f f
+impala lstm easy f 0 10 f t f
+impala lstm easy f 0 2 f t f
+impala transformer easy f 0 10 f t f
+impala transformer easy f 0 2 f t f
+impala dense easy f 0 10 f t f
+impala dense easy f 0 2 f t f
+impala lstm easy t 7 10 f t f
+impala lstm easy t 7 2 f t f
+impala transformer easy t 7 10 f t f
+impala transformer easy t 7 2 f t f
+impala dense easy t 7 10 f t f
+impala dense easy t 7 2 f t f
+
+impala simple easy f 0 10 f f f
+impala simple easy f 0 2 f f f
+impala simple easy t 7 10 f f f
+impala simple easy t 7 2 f f f
+impala simple easy f 0 10 f t f
+impala simple easy f 0 2 f t f
+impala simple easy t 7 10 f t f
+impala simple easy t 7 2 f t f
+
+impala simple easy f 0 10 f f t
+impala simple easy f 0 2 f f t
+impala simple easy t 7 10 f f t
+impala simple easy t 7 2 f f t
+impala simple easy f 0 10 f t t
+impala simple easy f 0 2 f t t
+impala simple easy t 7 10 f t t
+impala simple easy t 7 2 f t t
+
+
+
+impala lstm easy t 7 10 f t f
+impala lstm easy t 7 10 t t f
+impala lstm easy t 7 50 f t f
+impala dense easy t 7 10 f t f
+impala dense easy t 7 10 t t f
+impala dense easy t 7 50 f t f
+impala transformer easy t 7 10 f t f
+impala transformer easy t 7 10 t t f
+impala transformer easy t 7 50 f t f
+
+impala lstm easy f 0 10 f t f
+impala lstm easy f 0 10 t t f
+impala dense easy f 0 10 f t f
+impala dense easy f 0 10 t t f
+impala transformer easy f 0 10 f t f
+impala transformer easy f 0 10 t t f
+
+
+impala lstm easy t 7 50 t t f softmax adam
+impala lstm easy t 7 50 t t f softmax rmsprop
+impala lstm easy t 7 50 t t f linear adam
+impala lstm easy t 7 50 t t f linear rmsprop
+
+impala transformer easy t 7 50 t t f softmax adam
+impala transformer easy t 7 50 t t f softmax rmsprop
+impala transformer easy t 7 50 t t f linear adam
+impala transformer easy t 7 50 t t f linear rmsprop
+
+impala dense easy t 7 50 t t f softmax adam
+impala dense easy t 7 50 t t f softmax rmsprop
+impala dense easy t 7 50 t t f linear adam
+impala dense easy t 7 50 t t f linear rmsprop

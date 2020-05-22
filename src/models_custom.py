@@ -197,6 +197,7 @@ class TransformerCustomModel(RecurrentTFModelV2):
             cell_size=256, d_model=32, n_heads=8, plot_model=False):
         super(TransformerCustomModel, self).__init__(obs_space, action_space, num_outputs, model_config, name)
         self.cell_size = cell_size
+        self.last_activation = model_config["custom_options"]["last_activation"]
 
         input_layer = Input(
             shape=(None, 64 * 64 * 3), name="input")
@@ -209,7 +210,7 @@ class TransformerCustomModel(RecurrentTFModelV2):
         trans1 = transformer(shorten, d_model, n_heads)
         # trans2 = transformer(trans1, d_model, n_heads)
 
-        logits = Dense(15, activation=tf.keras.activations.softmax, name="logits")(trans1)
+        logits = Dense(15, activation=self.last_activation, name="logits")(trans1)
         values = Dense(1, activation=None, name="values")(trans1)
 
         # Create the RNN model
@@ -248,6 +249,8 @@ class LSTMCustomModel(RecurrentTFModelV2):
             cell_size=256, plot_model=False):
         super(LSTMCustomModel, self).__init__(obs_space, action_space, num_outputs, model_config, name)
         self.cell_size = cell_size
+        print(model_config)
+        self.last_activation = model_config["custom_options"]["last_activation"]
 
         input_layer = Input(
             shape=(None, 64 * 64 * 3), name="input")
@@ -268,7 +271,7 @@ class LSTMCustomModel(RecurrentTFModelV2):
 
         # Postprocess LSTM output with another hidden layer and compute values
         logits = Dense(
-            15, activation=tf.keras.activations.linear, name="logits")(lstm_out)
+            15, activation=self.last_activation, name="logits")(lstm_out)
         values = Dense(
             1, activation=None, name="values")(lstm_out)
 
@@ -306,6 +309,7 @@ class SimpleCustomModel(RecurrentTFModelV2):
             cell_size=256, plot_model=False):
         super(SimpleCustomModel, self).__init__(obs_space, action_space, num_outputs, model_config, name)
         self.cell_size = cell_size
+        self.last_activation = model_config["custom_options"]["last_activation"]
 
         input_layer = Input(
             shape=(None, 64 * 64 * 3), name="inputs")
@@ -316,7 +320,7 @@ class SimpleCustomModel(RecurrentTFModelV2):
         flatten = simple_conv_network(input_layer)
 
         # Preprocess observation with a hidden layer and send to LSTM cell
-        dense1 = Dense(256, activation=tf.nn.relu, name="dense1")(flatten)
+        dense1 = Dense(256, activation=self.last_activation, name="dense1")(flatten)
 
         lstm_out, state_h, state_c = LSTM(
             cell_size, return_sequences=True, return_state=True, name="lstm")(
@@ -364,6 +368,7 @@ class DenseCustomModel(TFModelV2):
             cell_size=256, plot_model=False):
         super(DenseCustomModel, self).__init__(obs_space, action_space, num_outputs, model_config, name)
         self.cell_size = cell_size
+        self.last_activation = model_config["custom_options"]["last_activation"]
 
         input_layer = Input(
             shape=(None, 64 * 64 * 3), name="input")
@@ -372,12 +377,13 @@ class DenseCustomModel(TFModelV2):
 
         # Preprocess observation with a hidden layer and send to LSTM cell
         dense1 = Dense(256, activation=tf.nn.relu, name="dense1")(flatten)
+        dense2 = Dense(256, activation=tf.nn.relu, name="dense2")(dense1)
 
         # Postprocess LSTM output with another hidden layer and compute values
         logits = Dense(
-            15, activation=tf.keras.activations.softmax, name="logits")(dense1)
+            15, activation=self.last_activation, name="logits")(dense2)
         values = Dense(
-            1, activation=None, name="values")(dense1)
+            1, activation=None, name="values")(dense2)
 
         # Create the model
         self.rnn_model = tf.keras.Model(

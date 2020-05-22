@@ -5,6 +5,7 @@ from ray.rllib.agents.dqn import dqn
 from ray.rllib.agents.dqn import apex
 
 import numpy as np
+import tensorflow as tf
 
 
 #  episode:
@@ -79,11 +80,16 @@ def on_postprocess_traj(info):
 # configurations   #
 ####################
 
-def set_model(config, model_name):
+def set_model(config, model_name, last_activation):
     model_name = model_name + "_model"
+    if last_activation == "linear":
+        last_activation = tf.keras.activations.linear
+    elif last_activation == "softmax":
+        last_activation = tf.keras.activations.softmax
+
     config["model"]["custom_model"] = model_name
     config["model"]["custom_action_dist"] = None
-    config["model"]["custom_options"] = {}
+    config["model"]["custom_options"] = {"last_activation": last_activation}
     config["model"]["custom_preprocessor"] = None
 
 
@@ -312,7 +318,7 @@ def set_ppo_config(config):
     #### 2 ####
 
 
-def set_impala_config(config, buffer):
+def set_impala_config(config, buffer, vtrace, optimizer):
     # config["vtrace"] = True
     # config["vtrace_clip_rho_threshold"] = 1.0
     # config["vtrace_clip_pg_rho_threshold"] = 1.0
@@ -392,11 +398,18 @@ def set_impala_config(config, buffer):
     else:
         config["replay_proportion"] = 0  # set to > 0 to use replay buffer
         config["replay_buffer_num_slots"] = 0  # number of sample batches to store for replay
+
+    if vtrace:
+        config["vtrace"] = True
+    else:
+        config["vtrace"] = False
+
+    config["opt_type"] = optimizer
     #### 3 ####
 
 
-def set_appo_config(config, buffer):
-    set_impala_config(config, buffer)
+def set_appo_config(config, buffer, vtrace, optimizer):
+    set_impala_config(config, buffer, vtrace, optimizers)
     # config["vtrace"] = True  # v-trace of GAE advantages
     #
     # # only used if v_trace is False
@@ -414,44 +427,44 @@ def set_appo_config(config, buffer):
     config["clip_param"] = 0.1
 
 
-def get_config_apex(buffer):
+def get_config_apex(buffer, vtrace, optimizer):
     config = apex.APEX_DEFAULT_CONFIG.copy()
     set_common_config(config)
     set_apex_config(config)
     return config
 
 
-def get_config_rainbow(buffer):
+def get_config_rainbow(buffer, vtrace, optimizer):
     config = dqn.DEFAULT_CONFIG.copy()
     set_common_config(config)
     set_rainbow_config(config)
     return config
 
 
-def get_config_appo(buffer):
+def get_config_appo(buffer, vtrace, optimizer):
     config = impala.DEFAULT_CONFIG.copy()
     set_common_config(config)
-    set_appo_config(config, buffer)
+    set_appo_config(config, buffer, vtrace)
     return config
 
 
-def get_config_ppo(buffer):
+def get_config_ppo(buffer, vtrace, optimizer):
     config = ppo.DEFAULT_CONFIG.copy()
     set_common_config(config)
     set_ppo_config(config)
     return config
 
 
-def get_config_impala(buffer):
+def get_config_impala(buffer, vtrace, optimizer):
     config = impala.DEFAULT_CONFIG.copy()
     set_common_config(config)
-    set_impala_config(config, buffer)
+    set_impala_config(config, buffer, vtrace, optimizer)
     return config
 
 
-def get_simple_test_config(buffer):
+def get_simple_test_config(buffer, vtrace, optimizer):
     # used to check for bugs
-    config = get_config_impala(buffer)
+    config = get_config_impala(buffer, vtrace)
 
     # config["preprocessor_pref"] = None  # Does nothing
     # config["model"]["max_seq_len"] = 20
