@@ -1,2 +1,2 @@
 # Masters
-Efficient methods for generalization in deep reinforcement learning
+Exploration of Transformers and LSTM in Procedurally generated environments
